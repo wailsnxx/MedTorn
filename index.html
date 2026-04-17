@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MedTorn — Hospital General de Granollers</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body>
+
+    <!-- ========== HEADER ========== -->
+    <header class="header">
+        <div class="header-inner">
+            <div class="logo-area">
+                <div class="logo-icon">
+                    <i class="fas fa-hospital"></i>
+                </div>
+                <div class="logo-text">
+                    <span class="logo-title">MedTorn</span>
+                    <span class="logo-subtitle">Hospital General de Granollers</span>
+                </div>
+            </div>
+            <nav class="header-nav">
+                <a href="#" class="nav-link active" data-section="dashboard"><i class="fas fa-th-large"></i> Dashboard</a>
+                <a href="#" class="nav-link" data-section="metges"><i class="fas fa-user-md"></i> Metges</a>
+                <a href="#" class="nav-link" data-section="torns"><i class="fas fa-calendar-alt"></i> Quadre de Torns</a>
+                <a href="#" class="nav-link" data-section="suggeriments"><i class="fas fa-magic"></i> Suggeriments</a>
+            </nav>
+            <div class="header-actions">
+                <button class="btn-icon" title="Notificacions">
+                    <i class="fas fa-bell"></i>
+                    <span class="badge">3</span>
+                </button>
+                <div class="user-avatar">
+                    <img src="https://ui-avatars.com/api/?name=Anna+Puig&background=1a5276&color=fff&size=36&rounded=true&bold=true" alt="User">
+                    <span class="user-name">Anna Puig</span>
+                    <span class="user-role">Cap de Torn</span>
+                </div>
+                <a href="medic.html" class="btn-icon" title="Portal del Metge" style="text-decoration:none;font-size:0.75rem;width:auto;padding:0 12px;gap:6px;">
+                    <i class="fas fa-user-md"></i> Portal Metge
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- ========== MAIN CONTENT ========== -->
+    <main class="main-content">
+
+        <!-- ===== SECTION: DASHBOARD ===== -->
+        <section id="section-dashboard" class="section active">
+            <!-- Stats Cards -->
+            <div class="stats-row">
+                <div class="stat-card">
+                    <div class="stat-icon green"><i class="fas fa-user-check"></i></div>
+                    <div class="stat-info">
+                        <span class="stat-number" id="stat-disponibles">0</span>
+                        <span class="stat-label">Disponibles ara</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon blue"><i class="fas fa-user-clock"></i></div>
+                    <div class="stat-info">
+                        <span class="stat-number" id="stat-en-torn">0</span>
+                        <span class="stat-label">En torn actiu</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon orange"><i class="fas fa-user-minus"></i></div>
+                    <div class="stat-info">
+                        <span class="stat-number" id="stat-baixa">0</span>
+                        <span class="stat-label">De baixa</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon purple"><i class="fas fa-exchange-alt"></i></div>
+                    <div class="stat-info">
+                        <span class="stat-number" id="stat-reemplacaments">0</span>
+                        <span class="stat-label">Reemplaçaments</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Filter + Alerts -->
+            <div class="dashboard-grid">
+                <div class="card quick-search-card">
+                    <div class="card-header">
+                        <h2><i class="fas fa-search"></i> Cerca Ràpida de Metge</h2>
+                    </div>
+                    <div class="card-body">
+                        <div class="search-bar-large">
+                            <i class="fas fa-search"></i>
+                            <input type="text" id="quick-search" placeholder="Buscar per nom, especialitat o competència...">
+                        </div>
+                        <div class="quick-filters">
+                            <button class="chip active" data-filter="tots">Tots</button>
+                            <button class="chip" data-filter="disponible">Disponibles</button>
+                            <button class="chip" data-filter="en-torn">En torn</button>
+                            <button class="chip" data-filter="urgencies">Urgències</button>
+                            <button class="chip" data-filter="quirofan">Quiròfan</button>
+                        </div>
+                        <div id="quick-results" class="quick-results"></div>
+                    </div>
+                </div>
+
+                <div class="card alerts-card">
+                    <div class="card-header">
+                        <h2><i class="fas fa-exclamation-triangle"></i> Alertes i Incidències</h2>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert-list" id="alert-list">
+                            <!-- Populated by JS -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Current shift overview -->
+            <div class="card">
+                <div class="card-header">
+                    <h2><i class="fas fa-clock"></i> Torn Actual — <span id="torn-actual-label">Matí</span></h2>
+                    <div class="card-actions">
+                        <span class="live-badge"><span class="pulse"></span> En directe</span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="shift-overview" id="shift-overview">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===== SECTION: METGES ===== -->
+        <section id="section-metges" class="section">
+            <div class="section-header">
+                <h1>Directori de Metges</h1>
+                <button class="btn btn-primary" id="btn-add-doctor"><i class="fas fa-plus"></i> Afegir Metge</button>
+            </div>
+
+            <!-- Advanced Filters -->
+            <div class="card filter-panel">
+                <div class="card-header">
+                    <h2><i class="fas fa-filter"></i> Filtres Avançats</h2>
+                    <button class="btn btn-outline btn-sm" id="btn-clear-filters"><i class="fas fa-times"></i> Netejar filtres</button>
+                </div>
+                <div class="card-body">
+                    <div class="filters-grid">
+                        <div class="filter-group">
+                            <label>Especialitat</label>
+                            <select id="filter-specialty">
+                                <option value="">Totes les especialitats</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label>Subespecialitat</label>
+                            <select id="filter-subspecialty">
+                                <option value="">Totes</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label>Competència acreditada</label>
+                            <select id="filter-competence">
+                                <option value="">Totes les competències</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label>Planta / Unitat</label>
+                            <select id="filter-unit">
+                                <option value="">Totes les unitats</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label>Disponibilitat</label>
+                            <select id="filter-availability">
+                                <option value="">Qualsevol</option>
+                                <option value="disponible">Disponible</option>
+                                <option value="en-torn">En torn</option>
+                                <option value="baixa">De baixa</option>
+                                <option value="vacances">Vacances</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label>Idioma</label>
+                            <select id="filter-language">
+                                <option value="">Qualsevol</option>
+                                <option value="Català">Català</option>
+                                <option value="Castellà">Castellà</option>
+                                <option value="Anglès">Anglès</option>
+                                <option value="Francès">Francès</option>
+                                <option value="Àrab">Àrab</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Results Count -->
+            <div class="results-info">
+                <span id="results-count">0 metges trobats</span>
+                <div class="view-toggle">
+                    <button class="btn-icon active" id="view-grid" title="Vista graella"><i class="fas fa-th"></i></button>
+                    <button class="btn-icon" id="view-list" title="Vista llista"><i class="fas fa-list"></i></button>
+                </div>
+            </div>
+
+            <!-- Doctor Cards Grid -->
+            <div class="doctors-grid" id="doctors-grid">
+                <!-- Populated by JS -->
+            </div>
+        </section>
+
+        <!-- ===== SECTION: TORNS ===== -->
+        <section id="section-torns" class="section">
+            <div class="section-header">
+                <h1>Quadre de Torns</h1>
+                <div class="shift-nav">
+                    <button class="btn btn-outline" id="btn-prev-week"><i class="fas fa-chevron-left"></i></button>
+                    <span id="week-label" class="week-label">Setmana actual</span>
+                    <button class="btn btn-outline" id="btn-next-week"><i class="fas fa-chevron-right"></i></button>
+                    <button class="btn btn-primary"><i class="fas fa-download"></i> Exportar</button>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-body shift-table-wrapper">
+                    <table class="shift-table" id="shift-table">
+                        <thead>
+                            <tr>
+                                <th class="sticky-col">Metge</th>
+                                <th>Dilluns</th>
+                                <th>Dimarts</th>
+                                <th>Dimecres</th>
+                                <th>Dijous</th>
+                                <th>Divendres</th>
+                                <th>Dissabte</th>
+                                <th>Diumenge</th>
+                            </tr>
+                        </thead>
+                        <tbody id="shift-table-body">
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="shift-legend">
+                <span class="legend-item"><span class="legend-dot mati"></span> Matí (M)</span>
+                <span class="legend-item"><span class="legend-dot tarda"></span> Tarda (T)</span>
+                <span class="legend-item"><span class="legend-dot nit"></span> Nit (N)</span>
+                <span class="legend-item"><span class="legend-dot guardia"></span> Guàrdia (G)</span>
+                <span class="legend-item"><span class="legend-dot lliure"></span> Lliure (L)</span>
+                <span class="legend-item"><span class="legend-dot baixa"></span> Baixa (B)</span>
+            </div>
+        </section>
+
+        <!-- ===== SECTION: SUGGERIMENTS ===== -->
+        <section id="section-suggeriments" class="section">
+            <div class="section-header">
+                <h1>Suggeriments Automàtics</h1>
+            </div>
+
+            <div class="card suggestion-card">
+                <div class="card-header">
+                    <h2><i class="fas fa-search-plus"></i> Troba el metge adequat per a un cas</h2>
+                </div>
+                <div class="card-body">
+                    <div class="suggestion-form">
+                        <div class="filter-group">
+                            <label>Especialitat requerida</label>
+                            <select id="sug-specialty">
+                                <option value="">Selecciona...</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label>Competència específica</label>
+                            <select id="sug-competence">
+                                <option value="">Selecciona...</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label>Urgència</label>
+                            <select id="sug-urgency">
+                                <option value="normal">Normal</option>
+                                <option value="alta">Alta</option>
+                                <option value="critica">Crítica</option>
+                            </select>
+                        </div>
+                        <button class="btn btn-primary btn-lg" id="btn-suggest"><i class="fas fa-magic"></i> Obtenir Suggeriments</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="suggestions-results" class="suggestions-results">
+                <!-- Populated by JS -->
+            </div>
+        </section>
+    </main>
+
+    <!-- ========== DOCTOR DETAIL MODAL ========== -->
+    <div class="modal-overlay" id="modal-overlay">
+        <div class="modal" id="doctor-modal">
+            <button class="modal-close" id="modal-close"><i class="fas fa-times"></i></button>
+            <div class="modal-header" id="modal-header">
+                <div class="modal-avatar" id="modal-avatar"></div>
+                <div class="modal-title">
+                    <h2 id="modal-name"></h2>
+                    <p id="modal-specialty"></p>
+                </div>
+                <span class="status-badge" id="modal-status"></span>
+            </div>
+            <div class="modal-body">
+                <div class="modal-grid">
+                    <div class="modal-section">
+                        <h3><i class="fas fa-info-circle"></i> Informació General</h3>
+                        <div class="info-row"><span class="info-label">Nº Col·legiat</span><span id="modal-collegiat"></span></div>
+                        <div class="info-row"><span class="info-label">Experiència</span><span id="modal-experience"></span></div>
+                        <div class="info-row"><span class="info-label">Unitat</span><span id="modal-unit"></span></div>
+                        <div class="info-row"><span class="info-label">Idiomes</span><span id="modal-languages"></span></div>
+                    </div>
+                    <div class="modal-section">
+                        <h3><i class="fas fa-award"></i> Competències Acreditades</h3>
+                        <div id="modal-competences" class="tags-list"></div>
+                    </div>
+                    <div class="modal-section">
+                        <h3><i class="fas fa-calendar-week"></i> Torn Actual</h3>
+                        <div id="modal-shift-info" class="shift-info-detail"></div>
+                    </div>
+                    <div class="modal-section">
+                        <h3><i class="fas fa-tasks"></i> Accions</h3>
+                        <div class="modal-actions">
+                            <button class="btn btn-primary"><i class="fas fa-paper-plane"></i> Enviar Notificació</button>
+                            <button class="btn btn-success"><i class="fas fa-user-plus"></i> Assignar a Cas</button>
+                            <button class="btn btn-outline"><i class="fas fa-exchange-alt"></i> Canvi de Torn</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== TOAST NOTIFICATION ========== -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MedTorn — Portal del Metge</title>
+    <link rel="stylesheet" href="medic-styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body>
+
+    <!-- ========== HEADER ========== -->
+    <header class="header">
+        <div class="header-inner">
+            <div class="logo-area">
+                <div class="logo-icon"><i class="fas fa-hospital"></i></div>
+                <div class="logo-text">
+                    <span class="logo-title">MedTorn</span>
+                    <span class="logo-subtitle">Portal del Metge</span>
+                </div>
+            </div>
+            <nav class="header-nav">
+                <a href="#" class="nav-link active" data-section="inici"><i class="fas fa-home"></i> Inici</a>
+                <a href="#" class="nav-link" data-section="horari"><i class="fas fa-calendar-alt"></i> El meu Horari</a>
+                <a href="#" class="nav-link" data-section="perfil"><i class="fas fa-user-md"></i> El meu Perfil</a>
+                <a href="#" class="nav-link" data-section="sol·licituds"><i class="fas fa-exchange-alt"></i> Sol·licituds</a>
+            </nav>
+            <div class="header-actions">
+                <button class="btn-icon notification-btn" id="notif-btn" title="Notificacions">
+                    <i class="fas fa-bell"></i>
+                    <span class="badge" id="notif-badge">4</span>
+                </button>
+                <div class="user-avatar">
+                    <img src="https://ui-avatars.com/api/?name=Jordi+Puig&background=1a5276&color=fff&size=36&rounded=true&bold=true" alt="User">
+                    <div class="user-info-text">
+                        <span class="user-name">Dr. Jordi Puig</span>
+                        <span class="user-role">Cardiologia</span>
+                    </div>
+                </div>
+                <a href="index.html" class="btn btn-outline btn-sm switch-portal" title="Portal de Coordinació">
+                    <i class="fas fa-arrow-right-arrow-left"></i> Coordinació
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- ========== NOTIFICATIONS PANEL ========== -->
+    <div class="notif-panel" id="notif-panel">
+        <div class="notif-panel-header">
+            <h3>Notificacions</h3>
+            <button class="btn-text" id="notif-mark-all">Marcar totes com a llegides</button>
+        </div>
+        <div class="notif-list" id="notif-list">
+            <!-- JS populated -->
+        </div>
+    </div>
+
+    <!-- ========== MAIN ========== -->
+    <main class="main-content">
+
+        <!-- ===== SECTION: INICI (Home) ===== -->
+        <section id="section-inici" class="section active">
+            <!-- Welcome + Status -->
+            <div class="welcome-banner">
+                <div class="welcome-text">
+                    <h1>Bon dia, Dr. Puig 👋</h1>
+                    <p>Avui és <strong id="today-date"></strong>. El teu torn actual: <span class="torn-badge mati" id="current-shift-badge">Matí (M)</span></p>
+                </div>
+                <div class="welcome-status">
+                    <label class="status-switcher">
+                        <span class="status-label">El meu estat:</span>
+                        <select id="my-status-select">
+                            <option value="disponible" selected>✅ Disponible</option>
+                            <option value="en-torn">🔵 En torn</option>
+                            <option value="ocupat">🟡 Ocupat</option>
+                            <option value="pausa">⏸️ Pausa</option>
+                        </select>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Quick Info Cards -->
+            <div class="info-cards-row">
+                <div class="info-card">
+                    <div class="info-card-icon blue"><i class="fas fa-clock"></i></div>
+                    <div class="info-card-body">
+                        <span class="info-card-title">Pròxim torn</span>
+                        <span class="info-card-value" id="next-shift">Demà — Tarda (15:00–23:00)</span>
+                    </div>
+                </div>
+                <div class="info-card">
+                    <div class="info-card-icon green"><i class="fas fa-map-marker-alt"></i></div>
+                    <div class="info-card-body">
+                        <span class="info-card-title">Ubicació actual</span>
+                        <span class="info-card-value" id="current-location">Planta 2 — Cardiologia</span>
+                    </div>
+                </div>
+                <div class="info-card">
+                    <div class="info-card-icon purple"><i class="fas fa-user-friends"></i></div>
+                    <div class="info-card-body">
+                        <span class="info-card-title">Companys en torn</span>
+                        <span class="info-card-value" id="colleagues-count">5 metges</span>
+                    </div>
+                </div>
+                <div class="info-card">
+                    <div class="info-card-icon orange"><i class="fas fa-tasks"></i></div>
+                    <div class="info-card-body">
+                        <span class="info-card-title">Casos assignats avui</span>
+                        <span class="info-card-value" id="cases-today">3 casos</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Today Schedule + Assigned Cases -->
+            <div class="home-grid">
+                <div class="card">
+                    <div class="card-header">
+                        <h2><i class="fas fa-calendar-day"></i> Horari d'avui</h2>
+                    </div>
+                    <div class="card-body">
+                        <div class="timeline" id="today-timeline">
+                            <!-- JS populated -->
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h2><i class="fas fa-clipboard-list"></i> Casos Assignats</h2>
+                    </div>
+                    <div class="card-body">
+                        <div class="cases-list" id="cases-list">
+                            <!-- JS populated -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Colleagues on shift -->
+            <div class="card">
+                <div class="card-header">
+                    <h2><i class="fas fa-users"></i> Companys en torn ara</h2>
+                </div>
+                <div class="card-body">
+                    <div class="colleagues-grid" id="colleagues-grid">
+                        <!-- JS populated -->
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===== SECTION: HORARI ===== -->
+        <section id="section-horari" class="section">
+            <div class="section-header">
+                <h1>El meu Horari</h1>
+                <div class="shift-nav">
+                    <button class="btn btn-outline" id="btn-prev-month"><i class="fas fa-chevron-left"></i></button>
+                    <span class="month-label" id="month-label">Febrer 2026</span>
+                    <button class="btn btn-outline" id="btn-next-month"><i class="fas fa-chevron-right"></i></button>
+                </div>
+            </div>
+
+            <!-- Week view -->
+            <div class="card">
+                <div class="card-header">
+                    <h2><i class="fas fa-calendar-week"></i> Aquesta setmana</h2>
+                </div>
+                <div class="card-body">
+                    <div class="week-schedule" id="week-schedule">
+                        <!-- JS populated -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Monthly Calendar -->
+            <div class="card">
+                <div class="card-header">
+                    <h2><i class="fas fa-calendar"></i> Calendari mensual</h2>
+                </div>
+                <div class="card-body calendar-body">
+                    <div class="calendar-grid" id="calendar-grid">
+                        <!-- JS populated -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Shift summary -->
+            <div class="card">
+                <div class="card-header">
+                    <h2><i class="fas fa-chart-bar"></i> Resum del mes</h2>
+                </div>
+                <div class="card-body">
+                    <div class="shift-summary" id="shift-summary">
+                        <!-- JS populated -->
+                    </div>
+                </div>
+            </div>
+
+            <div class="shift-legend">
+                <span class="legend-item"><span class="legend-dot mati"></span> Matí (M) 7:00–15:00</span>
+                <span class="legend-item"><span class="legend-dot tarda"></span> Tarda (T) 15:00–23:00</span>
+                <span class="legend-item"><span class="legend-dot nit"></span> Nit (N) 23:00–7:00</span>
+                <span class="legend-item"><span class="legend-dot guardia"></span> Guàrdia (G) 24h</span>
+                <span class="legend-item"><span class="legend-dot lliure"></span> Lliure (L)</span>
+            </div>
+        </section>
+
+        <!-- ===== SECTION: PERFIL ===== -->
+        <section id="section-perfil" class="section">
+            <div class="section-header">
+                <h1>El meu Perfil Professional</h1>
+                <button class="btn btn-primary" id="btn-edit-profile"><i class="fas fa-pen"></i> Editar perfil</button>
+            </div>
+
+            <div class="profile-layout">
+                <!-- Profile Header Card -->
+                <div class="card profile-hero">
+                    <div class="profile-hero-bg"></div>
+                    <div class="profile-hero-body">
+                        <img class="profile-avatar" src="https://ui-avatars.com/api/?name=Jordi+Puig&background=1a5276&color=fff&size=160&rounded=true&bold=true" alt="Dr. Jordi Puig">
+                        <div class="profile-main-info">
+                            <h2>Dr. Jordi Puig Fernández</h2>
+                            <p class="profile-specialty">Cardiologia — Cardiologia Intervencionista</p>
+                            <p class="profile-collegiat"><i class="fas fa-id-badge"></i> Nº Col·legiat: 080012345</p>
+                            <div class="profile-status-row">
+                                <span class="status-badge disponible">Disponible</span>
+                                <span class="profile-meta"><i class="fas fa-clock"></i> 14 anys d'experiència</span>
+                                <span class="profile-meta"><i class="fas fa-building"></i> Planta 2 — Cardiologia</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="profile-grid">
+                    <!-- Contact -->
+                    <div class="card">
+                        <div class="card-header"><h2><i class="fas fa-address-card"></i> Contacte</h2></div>
+                        <div class="card-body">
+                            <div class="info-row"><span class="info-label">Email</span><span>j.puig@hgg.cat</span></div>
+                            <div class="info-row"><span class="info-label">Telèfon intern</span><span>Ext. 4521</span></div>
+                            <div class="info-row"><span class="info-label">Mòbil (guàrdies)</span><span>+34 612 345 678</span></div>
+                            <div class="info-row"><span class="info-label">Idiomes</span><span>Català, Castellà, Anglès</span></div>
+                        </div>
+                    </div>
+
+                    <!-- Competences -->
+                    <div class="card">
+                        <div class="card-header"><h2><i class="fas fa-award"></i> Competències Acreditades</h2></div>
+                        <div class="card-body">
+                            <div class="competence-list" id="competence-list">
+                                <!-- JS populated -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Formation -->
+                    <div class="card">
+                        <div class="card-header"><h2><i class="fas fa-graduation-cap"></i> Formació</h2></div>
+                        <div class="card-body">
+                            <div class="formation-list">
+                                <div class="formation-item">
+                                    <div class="formation-year">2012</div>
+                                    <div class="formation-info">
+                                        <strong>Llicenciatura en Medicina</strong>
+                                        <span>Universitat de Barcelona</span>
+                                    </div>
+                                </div>
+                                <div class="formation-item">
+                                    <div class="formation-year">2017</div>
+                                    <div class="formation-info">
+                                        <strong>MIR — Cardiologia</strong>
+                                        <span>Hospital Clínic de Barcelona</span>
+                                    </div>
+                                </div>
+                                <div class="formation-item">
+                                    <div class="formation-year">2019</div>
+                                    <div class="formation-info">
+                                        <strong>Màster en Cardiologia Intervencionista</strong>
+                                        <span>Universitat Autònoma de Barcelona</span>
+                                    </div>
+                                </div>
+                                <div class="formation-item">
+                                    <div class="formation-year">2023</div>
+                                    <div class="formation-info">
+                                        <strong>Curs Avançat d'Ecocardiografia 3D</strong>
+                                        <span>Societat Espanyola de Cardiologia</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Stats -->
+                    <div class="card">
+                        <div class="card-header"><h2><i class="fas fa-chart-pie"></i> Estadístiques del mes</h2></div>
+                        <div class="card-body">
+                            <div class="profile-stats">
+                                <div class="profile-stat">
+                                    <span class="profile-stat-num">18</span>
+                                    <span class="profile-stat-label">Torns realitzats</span>
+                                </div>
+                                <div class="profile-stat">
+                                    <span class="profile-stat-num">3</span>
+                                    <span class="profile-stat-label">Guàrdies</span>
+                                </div>
+                                <div class="profile-stat">
+                                    <span class="profile-stat-num">42</span>
+                                    <span class="profile-stat-label">Pacients atesos</span>
+                                </div>
+                                <div class="profile-stat">
+                                    <span class="profile-stat-num">7</span>
+                                    <span class="profile-stat-label">Dies lliures</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===== SECTION: SOL·LICITUDS ===== -->
+        <section id="section-sol·licituds" class="section">
+            <div class="section-header">
+                <h1>Sol·licituds i Canvis</h1>
+                <button class="btn btn-primary" id="btn-new-request"><i class="fas fa-plus"></i> Nova sol·licitud</button>
+            </div>
+
+            <!-- New request form -->
+            <div class="card" id="request-form-card" style="display:none;">
+                <div class="card-header">
+                    <h2><i class="fas fa-file-alt"></i> Nova Sol·licitud</h2>
+                    <button class="btn btn-outline btn-sm" id="btn-cancel-request"><i class="fas fa-times"></i> Cancel·lar</button>
+                </div>
+                <div class="card-body">
+                    <div class="request-form">
+                        <div class="filter-group">
+                            <label>Tipus de sol·licitud</label>
+                            <select id="request-type">
+                                <option value="canvi-torn">Canvi de torn</option>
+                                <option value="permut">Permuta amb company</option>
+                                <option value="baixa">Comunicar baixa</option>
+                                <option value="vacances">Sol·licitar vacances</option>
+                                <option value="altres">Altres</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label>Data</label>
+                            <input type="date" id="request-date">
+                        </div>
+                        <div class="filter-group">
+                            <label>Torn afectat</label>
+                            <select id="request-shift">
+                                <option value="M">Matí</option>
+                                <option value="T">Tarda</option>
+                                <option value="N">Nit</option>
+                                <option value="G">Guàrdia</option>
+                            </select>
+                        </div>
+                        <div class="filter-group full-width">
+                            <label>Motiu / Comentari</label>
+                            <textarea id="request-comment" rows="3" placeholder="Explica el motiu de la sol·licitud..."></textarea>
+                        </div>
+                        <button class="btn btn-primary btn-lg" id="btn-submit-request"><i class="fas fa-paper-plane"></i> Enviar sol·licitud</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Requests list -->
+            <div class="card">
+                <div class="card-header">
+                    <h2><i class="fas fa-list"></i> Les meves sol·licituds</h2>
+                    <div class="card-actions">
+                        <select id="filter-request-status" class="filter-select-sm">
+                            <option value="">Totes</option>
+                            <option value="pendent">Pendents</option>
+                            <option value="aprovada">Aprovades</option>
+                            <option value="rebutjada">Rebutjades</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="requests-list" id="requests-list">
+                        <!-- JS populated -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Incoming requests -->
+            <div class="card">
+                <div class="card-header">
+                    <h2><i class="fas fa-inbox"></i> Sol·licituds rebudes (permutes)</h2>
+                </div>
+                <div class="card-body">
+                    <div class="requests-list" id="incoming-requests">
+                        <!-- JS populated -->
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- ========== TOAST ========== -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <script src="medic-app.js"></script>
+</body>
+</html>
