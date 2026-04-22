@@ -1,10 +1,12 @@
 // server/index.js — Servidor Express principal de MedTorn
 require('dotenv').config({ path: require('path').join(__dirname, '../.env') });
 
-const express = require('express');
-const cors    = require('cors');
-const path    = require('path');
-const connectDB = require('./config/db');
+const express     = require('express');
+const cors        = require('cors');
+const path        = require('path');
+const swaggerUi   = require('swagger-ui-express');
+const swaggerSpec = require('./config/swagger');
+const connectDB   = require('./config/db');
 
 const app  = express();
 const PORT = process.env.PORT || 3000;
@@ -15,6 +17,13 @@ app.use(express.json());
 
 // Serveix els fitxers estàtics del frontend (carpeta arrel)
 app.use(express.static(path.join(__dirname, '..')));
+
+// ── Swagger UI ───────────────────────────────────────────────
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+  customSiteTitle: 'MedTorn API Docs',
+  customCss: '.swagger-ui .topbar { background-color: #1a5276; }',
+  swaggerOptions: { docExpansion: 'list', filter: true }
+}));
 
 // ── Rutes API ────────────────────────────────────────────────
 app.use('/api/metges',      require('./routes/metges'));
@@ -45,5 +54,6 @@ app.get('*', (req, res) => {
     console.log(`✔ MedTorn servidor actiu → http://localhost:${PORT}`);
     console.log(`  Portal Coordinació → http://localhost:${PORT}/index.html`);
     console.log(`  Portal Metge       → http://localhost:${PORT}/medic.html`);
+    console.log(`  API Docs (Swagger) → http://localhost:${PORT}/api-docs`);
   });
 })();

@@ -1,0 +1,5 @@
+✔ MongoDB connectat: mongodb://127.0.0.1:27017/medtorn
+✔ MedTorn servidor actiu → http://localhost:3000
+  Portal Coordinació → http://localhost:3000/index.html
+  Portal Metge       → http://localhost:3000/medic.html
+  API Docs (Swagger) → http://localhost:3000/api-docs
