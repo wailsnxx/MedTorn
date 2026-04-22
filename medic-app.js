@@ -1,17 +1,22 @@
 /* =============================================
-   MedTorn — Portal del Metge  
+   MedTorn — Portal del Metge (MongoDB backend)
    App Logic & Data
    ============================================= */
 
-// ========== CURRENT DOCTOR (logged in) ==========
-const ME = {
-    id: 2,
+const API = '/api';
+
+// Identificador del metge logat (num. col·legiat fix per al prototip)
+const ME_COLLEGIAT = '080012345';
+
+// ========== ESTAT (s'omple des del backend) ==========
+let ME = {
+    id: null,
     name: "Dr. Jordi Puig Fernández",
     shortName: "Dr. Puig",
     specialty: "Cardiologia",
     subspecialty: "Cardiologia Intervencionista",
     unit: "Planta 2 — Cardiologia",
-    collegiat: "080012345",
+    collegiat: ME_COLLEGIAT,
     experience: 14,
     languages: ["Català", "Castellà", "Anglès"],
     competences: [
@@ -25,73 +30,117 @@ const ME = {
     avatar: "https://ui-avatars.com/api/?name=Jordi+Puig&background=1a5276&color=fff&size=160&rounded=true&bold=true"
 };
 
-// Monthly shifts for the logged-in doctor (28+ days)
-const MY_SHIFTS = generateMonthlyShifts();
+// Torns del mes carregats des del backend  { "YYYY-MM-DD": "M"|"T"|"N"|"G"|"L"|"B" }
+let MY_SHIFTS = {};
 
-function generateMonthlyShifts() {
-    const shifts = {};
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = now.getMonth();
-    const daysInMonth = new Date(year, month + 1, 0).getDate();
-
-    const patterns = ["M", "M", "T", "T", "N", "L", "L"]; // rotation pattern
-    for (let d = 1; d <= daysInMonth; d++) {
-        const date = new Date(year, month, d);
-        const dayOfWeek = date.getDay();
-        let shift;
-        if (dayOfWeek === 0) shift = "L"; // Sundays mostly off
-        else if (d % 7 === 0) shift = "G"; // occasional guard
-        else shift = patterns[(d - 1) % patterns.length];
-
-        // Override today to be M (morning)
-        if (d === now.getDate()) shift = "M";
-
-        shifts[`${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`] = shift;
+// ── Carrega el perfil del metge des del backend ──────────────
+async function loadMeFromAPI() {
+    try {
+        const res = await fetch(`${API}/metges?q=${encodeURIComponent(ME_COLLEGIAT)}`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const metges = await res.json();
+        const metge = metges.find(m => m.collegiat === ME_COLLEGIAT);
+        if (metge) {
+            ME.id         = metge.id;
+            ME.name       = metge.name;
+            ME.specialty  = metge.specialty;
+            ME.subspecialty = metge.subspecialty;
+            ME.unit       = metge.unit;
+            ME.experience = metge.experience;
+            ME.languages  = metge.languages;
+            ME.competences = (metge.competenciesDetail || []).map(c => ({ name: c.name, level: c.level }));
+            ME.avatar     = metge.avatar;
+        }
+    } catch (err) {
+        console.error('Error carregant perfil del metge:', err);
     }
-    return shifts;
 }
 
-// ========== COLLEAGUES ==========
-const COLLEAGUES = [
-    { name: "Dra. Marta Vidal", specialty: "Cardiologia", unit: "Planta 2", status: "en-torn", avatar: "https://ui-avatars.com/api/?name=Marta+Vidal&background=2980b9&color=fff&size=80&rounded=true&bold=true" },
-    { name: "Dr. Pere Martí", specialty: "Medicina Interna", unit: "Planta 1", status: "en-torn", avatar: "https://ui-avatars.com/api/?name=Pere+Marti&background=1a5276&color=fff&size=80&rounded=true&bold=true" },
-    { name: "Dra. Laia Soler", specialty: "Urgències", unit: "Urgències", status: "disponible", avatar: "https://ui-avatars.com/api/?name=Laia+Soler&background=2980b9&color=fff&size=80&rounded=true&bold=true" },
-    { name: "Dr. Marc Roca", specialty: "Cirurgia General", unit: "Quiròfan 1", status: "en-torn", avatar: "https://ui-avatars.com/api/?name=Marc+Roca&background=1a5276&color=fff&size=80&rounded=true&bold=true" },
-    { name: "Dra. Clara Bosch", specialty: "Anestesiologia", unit: "Quiròfan 2", status: "en-torn", avatar: "https://ui-avatars.com/api/?name=Clara+Bosch&background=2980b9&color=fff&size=80&rounded=true&bold=true" },
-    { name: "Dr. Àlex Fernández", specialty: "Neurologia", unit: "Planta 3", status: "disponible", avatar: "https://ui-avatars.com/api/?name=Alex+Fernandez&background=1a5276&color=fff&size=80&rounded=true&bold=true" },
-    { name: "Dra. Núria Castelló", specialty: "Pediatria", unit: "Neonatologia", status: "en-torn", avatar: "https://ui-avatars.com/api/?name=Nuria+Castello&background=2980b9&color=fff&size=80&rounded=true&bold=true" },
-    { name: "Dr. David Romero", specialty: "Traumatologia", unit: "Urgències", status: "disponible", avatar: "https://ui-avatars.com/api/?name=David+Romero&background=1a5276&color=fff&size=80&rounded=true&bold=true" }
-];
+// ── Carrega torns del mes des del backend ────────────────────
+async function loadMyShifts(year, month) {
+    if (!ME.id) return;
+    try {
+        const res = await fetch(`${API}/torns/monthly/${ME.id}?year=${year}&month=${month}`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        MY_SHIFTS = await res.json();
+    } catch (err) {
+        console.error('Error carregant torns:', err);
+        MY_SHIFTS = {};
+    }
+}
 
-// ========== ASSIGNED CASES ==========
-const MY_CASES = [
-    { id: 1, title: "Cateterisme cardíac programat", patient: "Pacient #4521", room: "Hab. 215", priority: "mitja", time: "09:30", detail: "Pacient de 67 anys. Control post-stent." },
-    { id: 2, title: "Ecocardiografia d'urgència", patient: "Pacient #4533", room: "Urgències Box 3", priority: "alta", time: "11:00", detail: "Dolor toràcic agut. Descartar SCA." },
-    { id: 3, title: "Consulta seguiment", patient: "Pacient #4487", room: "Consulta 8", priority: "baixa", time: "12:30", detail: "Revisió trimestral. Insuficiència cardíaca estable." }
-];
+// ── Carrega casos del metge des del backend ──────────────────
+async function loadMyCases() {
+    if (!ME.id) return [];
+    try {
+        const res = await fetch(`${API}/casos?metge_id=${ME.id}`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return await res.json();
+    } catch (err) {
+        console.error('Error carregant casos:', err);
+        return [];
+    }
+}
 
-// ========== NOTIFICATIONS ==========
-const NOTIFICATIONS = [
-    { id: 1, type: "warning", icon: "fa-exchange-alt", title: "Sol·licitud de permuta", desc: "Dra. Marta Vidal vol permutar el torn de dijous (T) pel teu torn de divendres (M).", time: "Fa 20 min", unread: true },
-    { id: 2, type: "info", icon: "fa-calendar-check", title: "Torn confirmat", desc: "El teu torn de demà ha estat confirmat: Tarda (15:00–23:00)", time: "Fa 1 hora", unread: true },
-    { id: 3, type: "success", icon: "fa-check-circle", title: "Sol·licitud aprovada", desc: "La teva sol·licitud de vacances (15-20 març) ha estat aprovada.", time: "Fa 3 hores", unread: true },
-    { id: 4, type: "danger", icon: "fa-exclamation-triangle", title: "Alerta d'urgència", desc: "S'ha activat el protocol d'urgència a Planta 2. Consulta el cap de torn.", time: "Fa 5 hores", unread: true },
-    { id: 5, type: "info", icon: "fa-user-plus", title: "Cas assignat", desc: "T'han assignat un nou cas: Ecocardiografia d'urgència (Pacient #4533)", time: "Ahir", unread: false },
-    { id: 6, type: "success", icon: "fa-graduation-cap", title: "Formació disponible", desc: "Nou curs disponible: Actualització en Fibril·lació Auricular 2026", time: "Fa 2 dies", unread: false }
-];
+// ── Carrega notificacions des del backend ─────────────────────
+async function loadNotifications() {
+    if (!ME.id) return [];
+    try {
+        const res = await fetch(`${API}/notificacions?metge_id=${ME.id}`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return await res.json();
+    } catch (err) {
+        console.error('Error carregant notificacions:', err);
+        return [];
+    }
+}
 
-// ========== MY REQUESTS ==========
-const MY_REQUESTS = [
-    { id: 1, type: "vacances", icon: "fa-umbrella-beach", title: "Sol·licitud de vacances", detail: "15 – 20 de març 2026", comment: "Vacances familiars programades", date: "10 feb 2026", status: "aprovada" },
-    { id: 2, type: "canvi", icon: "fa-exchange-alt", title: "Canvi de torn", detail: "Dimarts 4 març: Matí → Tarda", comment: "Visita mèdica personal al matí", date: "20 feb 2026", status: "pendent" },
-    { id: 3, type: "permut", icon: "fa-people-arrows", title: "Permuta amb Dra. Vidal", detail: "Dilluns 10 març: intercanvi M ↔ T", comment: "Acord mutu per conciliació", date: "22 feb 2026", status: "pendent" }
-];
+// ── Carrega sol·licituds des del backend ─────────────────────
+async function loadMyRequests() {
+    if (!ME.id) return [];
+    try {
+        const res = await fetch(`${API}/solicituds?metge_id=${ME.id}`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return await res.json();
+    } catch (err) {
+        console.error('Error carregant sol·licituds:', err);
+        return [];
+    }
+}
 
-const INCOMING_REQUESTS = [
-    { id: 101, from: "Dra. Marta Vidal", type: "permut", icon: "fa-people-arrows", title: "Permuta de torn", detail: "Dijous 27 feb: El seu T per el teu M", date: "Fa 20 min", avatar: "https://ui-avatars.com/api/?name=Marta+Vidal&background=2980b9&color=fff&size=40&rounded=true&bold=true" },
-    { id: 102, from: "Dr. David Romero", type: "permut", icon: "fa-people-arrows", title: "Permuta de guàrdia", detail: "Dissabte 1 març: La seva G per la teva del 8 març", date: "Ahir", avatar: "https://ui-avatars.com/api/?name=David+Romero&background=1a5276&color=fff&size=40&rounded=true&bold=true" }
-];
+// ── Carrega sol·licituds entrants (permutes) ─────────────────
+async function loadIncomingRequests() {
+    if (!ME.id) return [];
+    try {
+        const res = await fetch(`${API}/solicituds/entrants/${ME.id}`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return await res.json();
+    } catch (err) {
+        console.error('Error carregant sol·licituds entrants:', err);
+        return [];
+    }
+}
+
+// ── Carrega companys (altres metges) ──────────────────────────
+async function loadColleagues() {
+    try {
+        const res = await fetch(`${API}/metges`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const all = await res.json();
+        return all.filter(m => String(m.collegiat) !== ME_COLLEGIAT).slice(0, 8);
+    } catch (err) {
+        console.error('Error carregant companys:', err);
+        return [];
+    }
+}
+
+
+// ========== ESTAT LOCAL (s'omple des del backend) ==========
+let COLLEAGUES = [];
+let MY_CASES   = [];
+let NOTIFICATIONS = [];
+let MY_REQUESTS = [];
+let INCOMING_REQUESTS = [];
 
 // ========== NAVIGATION ==========
 document.querySelectorAll('.nav-link').forEach(link => {
@@ -117,7 +166,12 @@ document.addEventListener('click', (e) => {
     }
 });
 
-document.getElementById('notif-mark-all').addEventListener('click', () => {
+document.getElementById('notif-mark-all').addEventListener('click', async () => {
+    if (ME.id) {
+        try {
+            await fetch(`${API}/notificacions/llegir-totes/${ME.id}`, { method: 'PATCH' });
+        } catch (e) { /* silenci */ }
+    }
     NOTIFICATIONS.forEach(n => n.unread = false);
     renderNotifications();
     document.getElementById('notif-badge').style.display = 'none';
@@ -351,15 +405,17 @@ function renderShiftSummary() {
     `;
 }
 
-document.getElementById('btn-prev-month').addEventListener('click', () => {
+document.getElementById('btn-prev-month').addEventListener('click', async () => {
     currentMonth--;
     if (currentMonth < 0) { currentMonth = 11; currentYear--; }
+    await loadMyShifts(currentYear, currentMonth + 1);
     renderSchedule();
 });
 
-document.getElementById('btn-next-month').addEventListener('click', () => {
+document.getElementById('btn-next-month').addEventListener('click', async () => {
     currentMonth++;
     if (currentMonth > 11) { currentMonth = 0; currentYear++; }
+    await loadMyShifts(currentYear, currentMonth + 1);
     renderSchedule();
 });
 
@@ -432,9 +488,14 @@ function renderIncomingRequests() {
 }
 
 function acceptRequest(id) {
-    const idx = INCOMING_REQUESTS.findIndex(r => r.id === id);
+    const idx = INCOMING_REQUESTS.findIndex(r => String(r.id) === String(id));
     if (idx > -1) {
         const req = INCOMING_REQUESTS[idx];
+        fetch(`${API}/solicituds/${id}/estat`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ estat: 'APROVADA' })
+        }).catch(e => console.error('Error actualitzant sol·licitud:', e));
         INCOMING_REQUESTS.splice(idx, 1);
         renderIncomingRequests();
         showToast(`Permuta amb ${req.from} acceptada!`);
@@ -442,9 +503,14 @@ function acceptRequest(id) {
 }
 
 function rejectRequest(id) {
-    const idx = INCOMING_REQUESTS.findIndex(r => r.id === id);
+    const idx = INCOMING_REQUESTS.findIndex(r => String(r.id) === String(id));
     if (idx > -1) {
         const req = INCOMING_REQUESTS[idx];
+        fetch(`${API}/solicituds/${id}/estat`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ estat: 'REBUTJADA' })
+        }).catch(e => console.error('Error actualitzant sol·licitud:', e));
         INCOMING_REQUESTS.splice(idx, 1);
         renderIncomingRequests();
         showToast(`Permuta amb ${req.from} rebutjada`, 'error');
@@ -466,10 +532,10 @@ document.getElementById('btn-cancel-request').addEventListener('click', () => {
     document.getElementById('request-form-card').style.display = 'none';
 });
 
-document.getElementById('btn-submit-request').addEventListener('click', () => {
-    const type = document.getElementById('request-type').value;
-    const date = document.getElementById('request-date').value;
-    const shift = document.getElementById('request-shift').value;
+document.getElementById('btn-submit-request').addEventListener('click', async () => {
+    const type    = document.getElementById('request-type').value;
+    const date    = document.getElementById('request-date').value;
+    const shift   = document.getElementById('request-shift').value;
     const comment = document.getElementById('request-comment').value;
 
     if (!date) {
@@ -477,57 +543,72 @@ document.getElementById('btn-submit-request').addEventListener('click', () => {
         return;
     }
 
-    const typeNames = {
-        'canvi-torn': 'Canvi de torn',
-        'permut': 'Permuta amb company',
-        'baixa': 'Comunicar baixa',
-        'vacances': 'Sol·licitar vacances',
-        'altres': 'Altres'
+    // Convertir tipus frontend → tipus DB
+    const TIPUS_DB = {
+        'canvi-torn': 'CANVI_TORN',
+        'permut':     'PERMUTA',
+        'baixa':      'BAIXA',
+        'vacances':   'VACANCES',
+        'altres':     'ALTRES'
+    };
+    const SHIFT_DB = {
+        'M': 'MATI', 'T': 'TARDA', 'N': 'NIT', 'G': 'GUARDIA', 'L': 'LLIURE', 'B': 'BAIXA'
     };
 
-    const typeIcons = {
-        'canvi-torn': 'fa-exchange-alt',
-        'permut': 'fa-people-arrows',
-        'baixa': 'fa-user-minus',
-        'vacances': 'fa-umbrella-beach',
-        'altres': 'fa-file-alt'
-    };
+    try {
+        const res = await fetch(`${API}/solicituds`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                tipus:               TIPUS_DB[type] || 'ALTRES',
+                dataInici:           date,
+                tornAfectat:         SHIFT_DB[shift] || 'MATI',
+                motiu:               comment || '',
+                metge_solicitant_id: ME.id
+            })
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
-    const typeClasses = {
-        'canvi-torn': 'canvi',
-        'permut': 'permut',
-        'baixa': 'baixa',
-        'vacances': 'vacances',
-        'altres': 'canvi'
-    };
-
-    MY_REQUESTS.unshift({
-        id: Date.now(),
-        type: typeClasses[type] || 'canvi',
-        icon: typeIcons[type] || 'fa-file-alt',
-        title: typeNames[type] || type,
-        detail: `${date} — Torn ${shift}`,
-        comment: comment || 'Sense comentari',
-        date: 'Ara mateix',
-        status: 'pendent'
-    });
-
-    renderMyRequests();
-    document.getElementById('request-form-card').style.display = 'none';
-    document.getElementById('request-date').value = '';
-    document.getElementById('request-comment').value = '';
-    showToast('Sol·licitud enviada correctament!');
+        // Recarregar llista des del backend
+        MY_REQUESTS = await loadMyRequests();
+        renderMyRequests();
+        document.getElementById('request-form-card').style.display = 'none';
+        document.getElementById('request-date').value = '';
+        document.getElementById('request-comment').value = '';
+        showToast('Sol·licitud enviada correctament!');
+    } catch (err) {
+        console.error('Error enviant sol·licitud:', err);
+        showToast("Error enviant la sol·licitud", 'error');
+    }
 });
 
 // ========== STATUS CHANGE ==========
-document.getElementById('my-status-select').addEventListener('change', (e) => {
+document.getElementById('my-status-select').addEventListener('change', async (e) => {
     const statusLabels = {
         'disponible': 'Disponible',
         'en-torn': 'En torn',
         'ocupat': 'Ocupat',
         'pausa': 'En pausa'
     };
-    showToast(`Estat actualitzat a: ${statusLabels[e.target.value]}`);
+    const STATUS_DB = {
+        'disponible': 'DISPONIBLE',
+        'en-torn':    'EN_TORN',
+        'ocupat':     'OCUPAT',
+        'pausa':      'PAUSA'
+    };
+    const val = e.target.value;
+    try {
+        const res = await fetch(`${API}/metges/${ME.id}/estat`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ estat: STATUS_DB[val] })
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        showToast(`Estat actualitzat a: ${statusLabels[val]}`);
+    } catch (err) {
+        console.error('Error actualitzant estat:', err);
+        showToast('Error actualitzant l\'estat', 'error');
+    }
 });
 
 // ========== TOAST ==========
@@ -544,7 +625,46 @@ function showToast(message, type = 'success') {
 }
 
 // ========== INIT ==========
-function init() {
+async function init() {
+    // 1. Carregar dades del metge logat
+    await loadMeFromAPI();
+
+    // 2. Actualitzar avatar i nom al header si ha canviat
+    if (ME.id) {
+        const headerImg = document.querySelector('.user-avatar img');
+        const headerName = document.querySelector('.user-name');
+        const headerRole = document.querySelector('.user-role');
+        if (headerImg)  headerImg.src = ME.avatar;
+        if (headerName) headerName.textContent = ME.name;
+        if (headerRole) headerRole.textContent = ME.specialty;
+    }
+
+    // 3. Carregar dades en paral·lel
+    const now = new Date();
+    const [notifs, cases, colleagues, myReqs, inReqs] = await Promise.all([
+        loadNotifications(),
+        loadMyCases(),
+        loadColleagues(),
+        loadMyRequests(),
+        loadIncomingRequests(),
+        loadMyShifts(now.getFullYear(), now.getMonth() + 1)
+    ]);
+
+    NOTIFICATIONS    = notifs;
+    MY_CASES         = cases;
+    COLLEAGUES       = colleagues;
+    MY_REQUESTS      = myReqs;
+    INCOMING_REQUESTS = inReqs;
+
+    // 4. Actualitzar badge de notificacions
+    const unreadCount = NOTIFICATIONS.filter(n => n.unread).length;
+    const badge = document.getElementById('notif-badge');
+    if (badge) {
+        badge.textContent = unreadCount;
+        badge.style.display = unreadCount > 0 ? '' : 'none';
+    }
+
+    // 5. Renderitzar
     renderNotifications();
     renderHome();
     renderSchedule();

@@ -1,9 +1,11 @@
 /* =============================================
-   MedTorn — App Logic & Sample Data
+   MedTorn — App Logic (MongoDB backend)
    Hospital General de Granollers
    ============================================= */
 
-// ========== SAMPLE DATA ==========
+const API = '/api';
+
+// ========== STATIC LISTS (per als selects de filtres) ==========
 const SPECIALTIES = [
     "Medicina Interna", "Cirurgia General", "Pediatria", "Ginecologia i Obstetrícia",
     "Traumatologia", "Cardiologia", "Neurologia", "Urologia", "Anestesiologia",
@@ -34,83 +36,34 @@ const UNITS = [
 
 const LANGUAGES = ["Català", "Castellà", "Anglès", "Francès", "Àrab", "Xinès"];
 
-const SHIFTS = ["M", "T", "N", "G", "L", "B"]; // Matí, Tarda, Nit, Guàrdia, Lliure, Baixa
-
-// Generate realistic doctors
-const DOCTOR_NAMES = [
-    { name: "Dra. Marta Vidal", gender: "f" },
-    { name: "Dr. Jordi Puig", gender: "m" },
-    { name: "Dr. Àlex Fernández", gender: "m" },
-    { name: "Dra. Laia Soler", gender: "f" },
-    { name: "Dr. Pere Martí", gender: "m" },
-    { name: "Dra. Núria Castelló", gender: "f" },
-    { name: "Dr. Marc Roca", gender: "m" },
-    { name: "Dra. Clara Bosch", gender: "f" },
-    { name: "Dr. Sergi López", gender: "m" },
-    { name: "Dra. Anna García", gender: "f" },
-    { name: "Dr. David Romero", gender: "m" },
-    { name: "Dra. Ester Pons", gender: "f" },
-    { name: "Dr. Pau Aguilar", gender: "m" },
-    { name: "Dra. Montse Ferrer", gender: "f" },
-    { name: "Dr. Oriol Camps", gender: "m" },
-    { name: "Dra. Gemma Navarro", gender: "f" },
-    { name: "Dr. Ramon Delgado", gender: "m" },
-    { name: "Dra. Sílvia Torres", gender: "f" },
-    { name: "Dr. Carles Blanch", gender: "m" },
-    { name: "Dra. Judit Morera", gender: "f" },
-    { name: "Dr. Enric Domènech", gender: "m" },
-    { name: "Dra. Irene Alsina", gender: "f" },
-    { name: "Dr. Xavier Giralt", gender: "m" },
-    { name: "Dra. Meritxell Font", gender: "f" },
-    { name: "Dr. Albert Verdú", gender: "m" },
-    { name: "Dra. Teresa Reig", gender: "f" },
-    { name: "Dr. Joan Mir", gender: "m" },
-    { name: "Dra. Roser Ventura", gender: "f" },
-    { name: "Dr. Miquel Cortés", gender: "m" },
-    { name: "Dra. Sandra Petit", gender: "f" }
-];
-
-function randomFrom(arr, count = 1) {
-    const shuffled = [...arr].sort(() => 0.5 - Math.random());
-    return count === 1 ? shuffled[0] : shuffled.slice(0, count);
-}
-
-function randomInt(min, max) {
-    return Math.floor(Math.random() * (max - min + 1)) + min;
-}
-
-function generateDoctors() {
-    return DOCTOR_NAMES.map((d, i) => {
-        const specialty = randomFrom(SPECIALTIES);
-        const statuses = ["disponible", "en-torn", "en-torn", "en-torn", "baixa", "vacances"];
-        const status = randomFrom(statuses);
-        const experience = randomInt(2, 30);
-        const weekShifts = Array.from({ length: 7 }, () => {
-            if (status === "baixa") return "B";
-            if (status === "vacances") return "L";
-            return randomFrom(SHIFTS);
-        });
-
-        return {
-            id: i + 1,
-            name: d.name,
-            gender: d.gender,
-            specialty: specialty,
-            subspecialty: randomFrom(SUBSPECIALTIES),
-            competences: randomFrom(COMPETENCES, randomInt(2, 5)),
-            unit: randomFrom(UNITS),
-            status: status,
-            experience: experience,
-            collegiat: `0800${String(10000 + i * 137).slice(0, 5)}`,
-            languages: randomFrom(LANGUAGES, randomInt(2, 3)),
-            shifts: weekShifts,
-            avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(d.name.replace('Dra. ', '').replace('Dr. ', ''))}&background=${d.gender === 'f' ? '2980b9' : '1a5276'}&color=fff&size=120&rounded=true&bold=true`
-        };
-    });
-}
-
-let doctors = generateDoctors();
+// ========== API STATE ==========
+let doctors = [];
 let currentWeekOffset = 0;
+
+// ── Carrega tots els metges des del backend ──────────────────
+async function loadDoctors() {
+    try {
+        const res = await fetch(`${API}/metges`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        doctors = await res.json();
+    } catch (err) {
+        console.error('Error carregant metges:', err);
+        showToast('Error connectant amb el servidor', 'error');
+        doctors = [];
+    }
+}
+
+// ── Carrega estadístiques del dashboard ──────────────────────
+async function loadStats() {
+    try {
+        const res = await fetch(`${API}/metges/stats`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return await res.json();
+    } catch (err) {
+        console.error('Error carregant estadístiques:', err);
+        return { disponibles: 0, enTorn: 0, baixa: 0, reemplacaments: 0 };
+    }
+}
 
 // ========== NAVIGATION ==========
 document.querySelectorAll('.nav-link').forEach(link => {
@@ -125,16 +78,12 @@ document.querySelectorAll('.nav-link').forEach(link => {
 });
 
 // ========== DASHBOARD ==========
-function updateDashboardStats() {
-    const disponibles = doctors.filter(d => d.status === 'disponible').length;
-    const enTorn = doctors.filter(d => d.status === 'en-torn').length;
-    const baixa = doctors.filter(d => d.status === 'baixa').length;
-    const reemplacaments = doctors.filter(d => d.status === 'baixa' || d.status === 'vacances').length;
-
-    animateCounter('stat-disponibles', disponibles);
-    animateCounter('stat-en-torn', enTorn);
-    animateCounter('stat-baixa', baixa);
-    animateCounter('stat-reemplacaments', reemplacaments);
+async function updateDashboardStats() {
+    const stats = await loadStats();
+    animateCounter('stat-disponibles', stats.disponibles);
+    animateCounter('stat-en-torn', stats.enTorn);
+    animateCounter('stat-baixa', stats.baixa);
+    animateCounter('stat-reemplacaments', stats.reemplacaments);
 }
 
 function animateCounter(id, target) {
@@ -177,7 +126,7 @@ function renderShiftOverview() {
     `).join('');
 
     container.querySelectorAll('.shift-overview-card').forEach(card => {
-        card.addEventListener('click', () => openDoctorModal(parseInt(card.dataset.id)));
+        card.addEventListener('click', () => openDoctorModal(card.dataset.id));
     });
 }
 
@@ -277,7 +226,7 @@ function renderQuickResults(query = '', filterType = 'tots') {
     }
 
     container.querySelectorAll('.quick-result-item').forEach(item => {
-        item.addEventListener('click', () => openDoctorModal(parseInt(item.dataset.id)));
+        item.addEventListener('click', () => openDoctorModal(item.dataset.id));
     });
 }
 
@@ -354,7 +303,7 @@ function renderDoctorsGrid() {
     `).join('');
 
     container.querySelectorAll('.doctor-card').forEach(card => {
-        card.addEventListener('click', () => openDoctorModal(parseInt(card.dataset.id)));
+        card.addEventListener('click', () => openDoctorModal(card.dataset.id));
     });
 }
 
@@ -502,7 +451,7 @@ document.getElementById('btn-suggest').addEventListener('click', () => {
 
 // ========== DOCTOR MODAL ==========
 function openDoctorModal(id) {
-    const d = doctors.find(doc => doc.id === id);
+    const d = doctors.find(doc => String(doc.id) === String(id));
     if (!d) return;
 
     document.getElementById('modal-name').textContent = d.name;
@@ -573,7 +522,8 @@ function formatStatus(status) {
 }
 
 // ========== INIT ==========
-function init() {
+async function init() {
+    await loadDoctors();
     updateDashboardStats();
     renderShiftOverview();
     renderAlerts();
