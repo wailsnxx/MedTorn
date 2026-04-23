@@ -36,21 +36,25 @@ let MY_SHIFTS = {};
 // ── Carrega el perfil del metge des del backend ──────────────
 async function loadMeFromAPI() {
     try {
-        const res = await fetch(`${API}/metges?q=${encodeURIComponent(ME_COLLEGIAT)}`);
+        // Usa el metge_id del token JWT (posat per auth-guard.js a window.AUTH)
+        const metge_id = window.AUTH && window.AUTH.metge_id;
+        if (!metge_id) { console.warn('AUTH.metge_id no disponible'); return; }
+
+        const res = await fetch(`${API}/metges/${metge_id}`);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const metges = await res.json();
-        const metge = metges.find(m => m.collegiat === ME_COLLEGIAT);
-        if (metge) {
-            ME.id         = metge.id;
-            ME.name       = metge.name;
-            ME.specialty  = metge.specialty;
-            ME.subspecialty = metge.subspecialty;
-            ME.unit       = metge.unit;
-            ME.experience = metge.experience;
-            ME.languages  = metge.languages;
-            ME.competences = (metge.competenciesDetail || []).map(c => ({ name: c.name, level: c.level }));
-            ME.avatar     = metge.avatar;
-        }
+        const metge = await res.json();
+
+        ME.id         = metge.id;
+        ME.name       = metge.name;
+        ME.shortName  = 'Dr. ' + (metge.name.split(' ').slice(-2, -1)[0] || metge.name);
+        ME.specialty  = metge.specialty;
+        ME.subspecialty = metge.subspecialty;
+        ME.unit       = metge.unit;
+        ME.collegiat  = metge.collegiat;
+        ME.experience = metge.experience;
+        ME.languages  = metge.languages;
+        ME.competences = (metge.competenciesDetail || []).map(c => ({ name: c.name, level: c.level }));
+        ME.avatar     = metge.avatar;
     } catch (err) {
         console.error('Error carregant perfil del metge:', err);
     }

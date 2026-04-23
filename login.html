@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MedTorn — Accés</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script>
+        // Redirigir si ja hi ha sessió activa
+        (function () {
+            var t = localStorage.getItem('medtorn_token');
+            if (!t) return;
+            try {
+                var p = JSON.parse(atob(t.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+                if (!p.exp || Math.floor(Date.now() / 1000) < p.exp) {
+                    window.location.replace(p.rol === 'METGE' ? '/medic.html' : '/index.html');
+                }
+            } catch (e) { localStorage.removeItem('medtorn_token'); }
+        }());
+    </script>
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --primary:       #1a5276;
+            --primary-dark:  #0e3a55;
+            --primary-light: #2980b9;
+            --accent:        #2471a3;
+            --green:         #27ae60;
+            --red:           #e74c3c;
+            --border:        #dce4ed;
+            --bg:            #f0f3f7;
+            --text:          #2c3e50;
+            --text-light:    #7f8c8d;
+            --radius:        12px;
+            --shadow:        0 4px 24px rgba(0,0,0,0.12);
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+        }
+
+        /* ── Card ────────────────────────────────── */
+        .login-card {
+            display: flex;
+            width: 100%;
+            max-width: 900px;
+            min-height: 580px;
+            background: #fff;
+            border-radius: 20px;
+            box-shadow: var(--shadow);
+            overflow: hidden;
+        }
+
+        /* ── Left panel (brand) ──────────────────── */
+        .brand-panel {
+            width: 360px;
+            flex-shrink: 0;
+            background: linear-gradient(160deg, var(--primary-dark) 0%, var(--primary) 50%, var(--primary-light) 100%);
+            padding: 48px 40px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            color: #fff;
+        }
+
+        .brand-logo { display: flex; align-items: center; gap: 14px; }
+        .brand-logo-icon {
+            width: 52px; height: 52px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 14px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.5rem;
+        }
+        .brand-logo-text .title  { font-size: 1.5rem; font-weight: 800; letter-spacing: -0.5px; }
+        .brand-logo-text .sub    { font-size: 0.75rem; opacity: 0.75; margin-top: 2px; }
+
+        .brand-body { margin-top: 40px; }
+        .brand-body h2 { font-size: 1.6rem; font-weight: 700; line-height: 1.3; margin-bottom: 12px; }
+        .brand-body p  { font-size: 0.88rem; opacity: 0.8; line-height: 1.6; }
+
+        .brand-features { margin-top: 32px; display: flex; flex-direction: column; gap: 14px; }
+        .brand-feature  { display: flex; align-items: center; gap: 12px; font-size: 0.85rem; opacity: 0.9; }
+        .brand-feature i { width: 20px; text-align: center; }
+
+        .brand-footer { font-size: 0.75rem; opacity: 0.55; }
+
+        /* ── Right panel (form) ──────────────────── */
+        .form-panel {
+            flex: 1;
+            padding: 48px 44px;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+
+        /* ── Tabs ────────────────────────────────── */
+        .tabs {
+            display: flex;
+            gap: 4px;
+            background: var(--bg);
+            border-radius: 10px;
+            padding: 4px;
+            margin-bottom: 32px;
+        }
+        .tab-btn {
+            flex: 1;
+            padding: 10px 0;
+            border: none;
+            background: transparent;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: var(--text-light);
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+        .tab-btn.active {
+            background: #fff;
+            color: var(--primary);
+            font-weight: 600;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+        }
+
+        /* ── Form panels ─────────────────────────── */
+        .form-section { display: none; }
+        .form-section.active { display: block; }
+
+        h3 {
+            font-size: 1.3rem; font-weight: 700;
+            color: var(--text); margin-bottom: 6px;
+        }
+        .form-subtitle { font-size: 0.85rem; color: var(--text-light); margin-bottom: 24px; }
+
+        /* ── Form fields ─────────────────────────── */
+        .field { margin-bottom: 16px; }
+        .field label {
+            display: block;
+            font-size: 0.82rem; font-weight: 600;
+            color: var(--text); margin-bottom: 6px;
+        }
+        .input-wrap {
+            position: relative;
+        }
+        .input-wrap i.icon-left {
+            position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+            color: var(--text-light); font-size: 0.85rem; pointer-events: none;
+        }
+        .input-wrap input,
+        .input-wrap select {
+            width: 100%;
+            padding: 11px 12px 11px 36px;
+            border: 1.5px solid var(--border);
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-family: inherit;
+            color: var(--text);
+            background: #fff;
+            transition: border-color 0.2s;
+            outline: none;
+            appearance: none;
+        }
+        .input-wrap select { padding-right: 36px; }
+        .input-wrap .icon-right {
+            position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+            color: var(--text-light); font-size: 0.85rem; cursor: pointer;
+        }
+        .input-wrap input:focus,
+        .input-wrap select:focus {
+            border-color: var(--primary-light);
+            box-shadow: 0 0 0 3px rgba(41,128,185,0.1);
+        }
+
+        /* ── Role selector ───────────────────────── */
+        .role-selector {
+            display: flex; gap: 10px; margin-bottom: 16px;
+        }
+        .role-option {
+            flex: 1; position: relative;
+        }
+        .role-option input[type="radio"] {
+            position: absolute; opacity: 0; width: 0; height: 0;
+        }
+        .role-option label {
+            display: flex; flex-direction: column; align-items: center;
+            gap: 8px; padding: 16px 8px;
+            border: 2px solid var(--border);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+            font-weight: 500; font-size: 0.85rem;
+            color: var(--text-light);
+        }
+        .role-option label i {
+            font-size: 1.5rem; color: var(--text-light);
+            transition: color 0.2s;
+        }
+        .role-option input:checked + label {
+            border-color: var(--primary);
+            background: rgba(26,82,118,0.05);
+            color: var(--primary);
+        }
+        .role-option input:checked + label i { color: var(--primary); }
+        .role-option label:hover {
+            border-color: var(--primary-light);
+            color: var(--primary);
+        }
+
+        /* ── Metge profile selector ──────────────── */
+        #metge-selector-wrap { display: none; margin-bottom: 16px; }
+        #metge-selector-wrap.visible { display: block; }
+
+        /* ── Submit button ───────────────────────── */
+        .btn-submit {
+            width: 100%; padding: 13px;
+            background: var(--primary);
+            color: #fff; border: none;
+            border-radius: 8px; font-size: 0.95rem;
+            font-weight: 600; font-family: inherit;
+            cursor: pointer; margin-top: 8px;
+            transition: background 0.2s;
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+        }
+        .btn-submit:hover { background: var(--primary-dark); }
+        .btn-submit:disabled { opacity: 0.6; cursor: not-allowed; }
+        .btn-submit .spinner {
+            width: 16px; height: 16px;
+            border: 2px solid rgba(255,255,255,0.4);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+            display: none;
+        }
+        .btn-submit.loading .spinner { display: block; }
+        .btn-submit.loading .btn-text { display: none; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ── Error / success message ─────────────── */
+        .alert {
+            padding: 11px 14px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            margin-bottom: 16px;
+            display: flex; align-items: flex-start; gap: 10px;
+            display: none;
+        }
+        .alert.error   { background: #fdedec; color: #c0392b; border: 1px solid #f5b7b1; }
+        .alert.success { background: #eafaf1; color: #1e8449; border: 1px solid #a9dfbf; }
+        .alert.visible { display: flex; }
+
+        /* ── Footer link ─────────────────────────── */
+        .demo-hint {
+            margin-top: 20px; padding: 12px;
+            background: #f8fafc;
+            border-radius: 8px; font-size: 0.8rem;
+            color: var(--text-light);
+            border: 1px solid var(--border);
+        }
+        .demo-hint strong { color: var(--text); }
+        .demo-hint .creds { margin-top: 6px; display: flex; flex-direction: column; gap: 3px; }
+        .demo-hint code {
+            background: #e8eef3; border-radius: 4px;
+            padding: 1px 6px; font-size: 0.78rem;
+        }
+
+        /* ── Responsive ──────────────────────────── */
+        @media (max-width: 700px) {
+            body { padding: 16px; align-items: flex-start; }
+            .login-card { flex-direction: column; }
+            .brand-panel { width: 100%; min-height: auto; padding: 28px 24px; }
+            .brand-features, .brand-body p { display: none; }
+            .brand-body h2 { font-size: 1.2rem; margin-bottom: 0; }
+            .brand-footer { display: none; }
+            .form-panel { padding: 28px 24px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="login-card">
+
+    <!-- ═══ LEFT: Brand panel ════════════════════════════════════ -->
+    <div class="brand-panel">
+        <div>
+            <div class="brand-logo">
+                <div class="brand-logo-icon"><i class="fas fa-hospital"></i></div>
+                <div class="brand-logo-text">
+                    <div class="title">MedTorn</div>
+                    <div class="sub">Hospital General de Granollers</div>
+                </div>
+            </div>
+            <div class="brand-body">
+                <h2>Gestió de torns mèdics</h2>
+                <p>Plataforma centralitzada per a la coordinació de torns, guàrdies i permutar del personal mèdic.</p>
+            </div>
+            <div class="brand-features">
+                <div class="brand-feature"><i class="fas fa-calendar-alt"></i> Planificació de torns en temps real</div>
+                <div class="brand-feature"><i class="fas fa-exchange-alt"></i> Sol·licituds de canvi i permutes</div>
+                <div class="brand-feature"><i class="fas fa-bell"></i> Notificacions instantànies</div>
+                <div class="brand-feature"><i class="fas fa-shield-alt"></i> Accés segur per rol</div>
+            </div>
+        </div>
+        <div class="brand-footer">© 2026 Hospital General de Granollers</div>
+    </div>
+
+    <!-- ═══ RIGHT: Form panel ════════════════════════════════════ -->
+    <div class="form-panel">
+
+        <!-- Tabs -->
+        <div class="tabs">
+            <button class="tab-btn active" id="tab-login" onclick="showTab('login')">
+                <i class="fas fa-sign-in-alt"></i> Iniciar sessió
+            </button>
+            <button class="tab-btn" id="tab-register" onclick="showTab('register')">
+                <i class="fas fa-user-plus"></i> Registrar-se
+            </button>
+        </div>
+
+        <!-- ── LOGIN ── -->
+        <div id="section-login" class="form-section active">
+            <h3>Benvingut/da</h3>
+            <p class="form-subtitle">Introdueix les teves credencials per accedir al sistema</p>
+
+            <div id="login-alert" class="alert error">
+                <i class="fas fa-exclamation-circle"></i>
+                <span id="login-alert-msg"></span>
+            </div>
+
+            <div class="field">
+                <label for="login-email">Correu electrònic</label>
+                <div class="input-wrap">
+                    <i class="fas fa-envelope icon-left"></i>
+                    <input type="email" id="login-email" placeholder="correu@hospital.cat" autocomplete="email">
+                </div>
+            </div>
+
+            <div class="field">
+                <label for="login-password">Contrasenya</label>
+                <div class="input-wrap">
+                    <i class="fas fa-lock icon-left"></i>
+                    <input type="password" id="login-password" placeholder="••••••••" autocomplete="current-password">
+                    <i class="fas fa-eye icon-right" id="toggle-login-pw" title="Mostrar/ocultar"></i>
+                </div>
+            </div>
+
+            <button class="btn-submit" id="btn-login">
+                <div class="spinner"></div>
+                <span class="btn-text"><i class="fas fa-sign-in-alt"></i> Entrar</span>
+            </button>
+
+            <div class="demo-hint">
+                <strong>Comptes de demostració:</strong>
+                <div class="creds">
+                    <span><i class="fas fa-user-tie" style="width:14px;color:#1a5276"></i> Cap de Torn — <code>admin@medtorn.cat</code> / <code>Admin1234!</code></span>
+                    <span><i class="fas fa-user-md" style="width:14px;color:#1a5276"></i> Metge — <code>jordi.puig@medtorn.cat</code> / <code>Metge1234!</code></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── REGISTER ── -->
+        <div id="section-register" class="form-section">
+            <h3>Crea un compte</h3>
+            <p class="form-subtitle">Omple el formulari per registrar-te al sistema</p>
+
+            <div id="reg-alert" class="alert error">
+                <i class="fas fa-exclamation-circle" id="reg-alert-icon"></i>
+                <span id="reg-alert-msg"></span>
+            </div>
+
+            <div class="field">
+                <label for="reg-nom">Nom complet</label>
+                <div class="input-wrap">
+                    <i class="fas fa-user icon-left"></i>
+                    <input type="text" id="reg-nom" placeholder="Dr. Nom Cognoms" autocomplete="name">
+                </div>
+            </div>
+
+            <div class="field">
+                <label for="reg-email">Correu electrònic</label>
+                <div class="input-wrap">
+                    <i class="fas fa-envelope icon-left"></i>
+                    <input type="email" id="reg-email" placeholder="correu@hospital.cat" autocomplete="email">
+                </div>
+            </div>
+
+            <div class="field">
+                <label for="reg-password">Contrasenya</label>
+                <div class="input-wrap">
+                    <i class="fas fa-lock icon-left"></i>
+                    <input type="password" id="reg-password" placeholder="Mínim 8 caràcters" autocomplete="new-password">
+                    <i class="fas fa-eye icon-right" id="toggle-reg-pw" title="Mostrar/ocultar"></i>
+                </div>
+            </div>
+
+            <div class="field">
+                <label for="reg-password2">Confirmar contrasenya</label>
+                <div class="input-wrap">
+                    <i class="fas fa-lock icon-left"></i>
+                    <input type="password" id="reg-password2" placeholder="Repeteix la contrasenya" autocomplete="new-password">
+                </div>
+            </div>
+
+            <div class="field">
+                <label>Rol</label>
+                <div class="role-selector">
+                    <div class="role-option">
+                        <input type="radio" name="reg-rol" id="rol-cap" value="CAP_TORN" checked>
+                        <label for="rol-cap">
+                            <i class="fas fa-user-tie"></i>
+                            Cap de Torn
+                        </label>
+                    </div>
+                    <div class="role-option">
+                        <input type="radio" name="reg-rol" id="rol-metge" value="METGE">
+                        <label for="rol-metge">
+                            <i class="fas fa-user-md"></i>
+                            Metge/ssa
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <div id="metge-selector-wrap" class="field">
+                <label for="reg-metge">Perfil mèdic</label>
+                <div class="input-wrap">
+                    <i class="fas fa-id-card icon-left"></i>
+                    <select id="reg-metge">
+                        <option value="">Carregant perfils…</option>
+                    </select>
+                    <i class="fas fa-chevron-down icon-right" style="pointer-events:none"></i>
+                </div>
+            </div>
+
+            <button class="btn-submit" id="btn-register">
+                <div class="spinner"></div>
+                <span class="btn-text"><i class="fas fa-user-plus"></i> Crear compte</span>
+            </button>
+        </div>
+
+    </div>
+</div>
+
+<script>
+// ── Tabs ──────────────────────────────────────────────────────
+function showTab(tab) {
+    document.getElementById('section-login').classList.toggle('active', tab === 'login');
+    document.getElementById('section-register').classList.toggle('active', tab === 'register');
+    document.getElementById('tab-login').classList.toggle('active', tab === 'login');
+    document.getElementById('tab-register').classList.toggle('active', tab === 'register');
+}
+
+// ── Toggle password visibility ────────────────────────────────
+function togglePw(inputId, iconId) {
+    const inp  = document.getElementById(inputId);
+    const icon = document.getElementById(iconId);
+    const show = inp.type === 'password';
+    inp.type   = show ? 'text' : 'password';
+    icon.classList.toggle('fa-eye',      !show);
+    icon.classList.toggle('fa-eye-slash', show);
+}
+document.getElementById('toggle-login-pw').addEventListener('click', () => togglePw('login-password', 'toggle-login-pw'));
+document.getElementById('toggle-reg-pw').addEventListener('click',   () => togglePw('reg-password',   'toggle-reg-pw'));
+
+// ── Mostrar/amagar selector de metge ─────────────────────────
+var metgesCarregats = false;
+document.querySelectorAll('input[name="reg-rol"]').forEach(function(radio) {
+    radio.addEventListener('change', function () {
+        var wrap = document.getElementById('metge-selector-wrap');
+        if (this.value === 'METGE') {
+            wrap.classList.add('visible');
+            if (!metgesCarregats) carregarMetges();
+        } else {
+            wrap.classList.remove('visible');
+        }
+    });
+});
+
+async function carregarMetges() {
+    metgesCarregats = true;
+    var sel = document.getElementById('reg-metge');
+    try {
+        var res  = await fetch('/api/auth/metges-disponibles');
+        var list = await res.json();
+        sel.innerHTML = '<option value="">— Selecciona el teu perfil —</option>';
+        list.forEach(function(m) {
+            var opt = document.createElement('option');
+            opt.value = m.id;
+            opt.textContent = m.nom + ' · ' + m.especialitat + ' (Col. ' + m.numCollegiat + ')';
+            sel.appendChild(opt);
+        });
+        if (list.length === 0) {
+            sel.innerHTML = '<option value="">Tots els perfils ja tenen compte</option>';
+        }
+    } catch (e) {
+        sel.innerHTML = '<option value="">Error carregant perfils</option>';
+    }
+}
+
+// ── Mostrar alerta ─────────────────────────────────────────────
+function showAlert(id, msg, type) {
+    var el   = document.getElementById(id);
+    var icon = el.querySelector('i');
+    el.className = 'alert ' + type + ' visible';
+    if (icon) icon.className = 'fas ' + (type === 'error' ? 'fa-exclamation-circle' : 'fa-check-circle');
+    el.querySelector('span').textContent = msg;
+}
+function hideAlert(id) {
+    document.getElementById(id).classList.remove('visible');
+}
+
+// ── Guardar token i redirigir ──────────────────────────────────
+function handleToken(token) {
+    localStorage.setItem('medtorn_token', token);
+    var payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+    window.location.replace(payload.rol === 'METGE' ? '/medic.html' : '/index.html');
+}
+
+// ── LOGIN ──────────────────────────────────────────────────────
+document.getElementById('btn-login').addEventListener('click', async function () {
+    hideAlert('login-alert');
+    var email    = document.getElementById('login-email').value.trim();
+    var password = document.getElementById('login-password').value;
+
+    if (!email || !password) {
+        showAlert('login-alert', 'Omple tots els camps.', 'error');
+        return;
+    }
+
+    this.classList.add('loading');
+    this.disabled = true;
+
+    try {
+        var res  = await fetch('/api/auth/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password })
+        });
+        var data = await res.json();
+        if (!res.ok) {
+            showAlert('login-alert', data.error || 'Error desconegut', 'error');
+        } else {
+            handleToken(data.token);
+        }
+    } catch (e) {
+        showAlert('login-alert', 'Error de connexió amb el servidor.', 'error');
+    } finally {
+        this.classList.remove('loading');
+        this.disabled = false;
+    }
+});
+
+// Entrar prement Enter
+document.getElementById('login-password').addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') document.getElementById('btn-login').click();
+});
+
+// ── REGISTER ──────────────────────────────────────────────────
+document.getElementById('btn-register').addEventListener('click', async function () {
+    hideAlert('reg-alert');
+    var nom      = document.getElementById('reg-nom').value.trim();
+    var email    = document.getElementById('reg-email').value.trim();
+    var pw1      = document.getElementById('reg-password').value;
+    var pw2      = document.getElementById('reg-password2').value;
+    var rol      = document.querySelector('input[name="reg-rol"]:checked').value;
+    var metge_id = document.getElementById('reg-metge').value;
+
+    if (!nom || !email || !pw1 || !pw2) {
+        showAlert('reg-alert', 'Omple tots els camps obligatoris.', 'error');
+        return;
+    }
+    if (pw1 !== pw2) {
+        showAlert('reg-alert', 'Les contrasenyes no coincideixen.', 'error');
+        return;
+    }
+    if (pw1.length < 8) {
+        showAlert('reg-alert', 'La contrasenya ha de tenir mínim 8 caràcters.', 'error');
+        return;
+    }
+    if (rol === 'METGE' && !metge_id) {
+        showAlert('reg-alert', 'Selecciona el teu perfil mèdic.', 'error');
+        return;
+    }
+
+    this.classList.add('loading');
+    this.disabled = true;
+
+    try {
+        var body = { nom, email, password: pw1, rol };
+        if (rol === 'METGE') body.metge_id = metge_id;
+
+        var res  = await fetch('/api/auth/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
+        var data = await res.json();
+        if (!res.ok) {
+            showAlert('reg-alert', data.error || 'Error desconegut', 'error');
+        } else {
+            showAlert('reg-alert', 'Compte creat! Redirigint…', 'success');
+            setTimeout(() => handleToken(data.token), 800);
+        }
+    } catch (e) {
+        showAlert('reg-alert', 'Error de connexió amb el servidor.', 'error');
+    } finally {
+        this.classList.remove('loading');
+        this.disabled = false;
+    }
+});
+</script>
+</body>
+</html>
