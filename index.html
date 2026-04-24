@@ -8,6 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="auth-guard.js"></script>
 </head>
 <body>
 
@@ -35,13 +36,13 @@
                     <span class="badge">3</span>
                 </button>
                 <div class="user-avatar">
-                    <img src="https://ui-avatars.com/api/?name=Anna+Puig&background=1a5276&color=fff&size=36&rounded=true&bold=true" alt="User">
-                    <span class="user-name">Anna Puig</span>
+                    <img id="header-avatar" src="https://ui-avatars.com/api/?name=Cap+Torn&background=1a5276&color=fff&size=36&rounded=true&bold=true" alt="User">
+                    <span class="user-name" id="header-nom">Cap de Torn</span>
                     <span class="user-role">Cap de Torn</span>
                 </div>
-                <a href="medic.html" class="btn-icon" title="Portal del Metge" style="text-decoration:none;font-size:0.75rem;width:auto;padding:0 12px;gap:6px;">
-                    <i class="fas fa-user-md"></i> Portal Metge
-                </a>
+                <button class="btn-icon" id="btn-logout" title="Tancar sessió" style="width:auto;padding:0 12px;gap:6px;font-size:0.75rem;">
+                    <i class="fas fa-sign-out-alt"></i> Sortir
+                </button>
             </div>
         </div>
     </header>
@@ -345,5 +346,11 @@
     <div class="toast-container" id="toast-container"></div>
 
     <script src="app.js"></script>
+    <script>
+        document.getElementById('btn-logout').addEventListener('click', function() {
+            localStorage.removeItem('medtorn_token');
+            window.location.replace('/login.html');
+        });
+    </script>
 </body>
 </html>

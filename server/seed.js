@@ -8,6 +8,7 @@ const Torn      = require('./models/Torn');
 const Cas       = require('./models/Cas');
 const Solicitud = require('./models/Solicitud');
 const Notificacio = require('./models/Notificacio');
+const Usuari    = require('./models/Usuari');
 
 // ── Dades mestres ────────────────────────────────────────────
 const SPECIALTIES = [
@@ -73,7 +74,8 @@ async function seed() {
     Torn.deleteMany({}),
     Cas.deleteMany({}),
     Solicitud.deleteMany({}),
-    Notificacio.deleteMany({})
+    Notificacio.deleteMany({}),
+    Usuari.deleteMany({})
   ]);
 
   // ── Metges ──
@@ -229,6 +231,28 @@ async function seed() {
   console.log(`  Metges: ${metges.length}  Torns: ${torns.length}`);
   console.log('  ID del Dr. Jordi Puig:', jordiPuig._id.toString());
   console.log('══════════════════════════════════════════\n');
+
+  // ── Usuaris per defecte ──
+  console.log('👤  Inserint usuaris per defecte...');
+  await Usuari.create([
+    {
+      nom:      'Anna Puig',
+      email:    'admin@medtorn.cat',
+      password: 'Admin1234!',
+      rol:      'CAP_TORN',
+      metge_id: null
+    },
+    {
+      nom:      'Dr. Jordi Puig Fernández',
+      email:    'jordi.puig@medtorn.cat',
+      password: 'Metge1234!',
+      rol:      'METGE',
+      metge_id: jordiPuig._id
+    }
+  ]);
+  console.log('   ✔ 2 usuaris inserits');
+  console.log('   Cap de Torn → admin@medtorn.cat / Admin1234!');
+  console.log('   Metge       → jordi.puig@medtorn.cat / Metge1234!\n');
 
   await mongoose.disconnect();
 }
