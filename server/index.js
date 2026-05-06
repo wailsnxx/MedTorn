@@ -26,6 +26,7 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
 }));
 
 // ── Rutes API ────────────────────────────────────────────────
+app.use('/api/auth',        require('./routes/auth'));
 app.use('/api/metges',      require('./routes/metges'));
 app.use('/api/torns',       require('./routes/torns'));
 app.use('/api/casos',       require('./routes/casos'));

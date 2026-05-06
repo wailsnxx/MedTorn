@@ -205,6 +205,7 @@ const spec = {
 
   // ── Tags ─────────────────────────────────────────────────────────────────
   tags: [
+    { name: 'Auth',         description: 'Registre i autenticació d\'usuaris' },
     { name: 'Metges',       description: 'Gestió del personal mèdic' },
     { name: 'Torns',        description: 'Torns i horaris' },
     { name: 'Casos',        description: 'Casos clínics assignats' },
@@ -215,6 +216,115 @@ const spec = {
 
   // ── Paths ─────────────────────────────────────────────────────────────────
   paths: {
+
+    // ════════════════ AUTH ══════════════════════════════════════════════════
+    '/api/auth/login': {
+      post: {
+        tags: ['Auth'],
+        summary: 'Inici de sessió',
+        description: 'Retorna un JWT vàlid 7 dies si les credencials són correctes.',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object', required: ['email', 'password'],
+                properties: {
+                  email:    { type: 'string', format: 'email', example: 'admin@medtorn.cat' },
+                  password: { type: 'string', example: 'Admin1234!' }
+                }
+              }
+            }
+          }
+        },
+        responses: {
+          200: {
+            description: 'Login correcte — retorna token JWT',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    token:  { type: 'string', example: 'eyJhbGc...' },
+                    usuari: {
+                      type: 'object',
+                      properties: {
+                        id:       { type: 'string' },
+                        nom:      { type: 'string', example: 'Anna Puig' },
+                        email:    { type: 'string' },
+                        rol:      { type: 'string', enum: ['METGE', 'CAP_TORN'] },
+                        metge_id: { type: 'string', nullable: true }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          400: { description: 'Falten camps', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+          401: { description: 'Credencials incorrectes', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
+        }
+      }
+    },
+
+    '/api/auth/register': {
+      post: {
+        tags: ['Auth'],
+        summary: 'Registre d\'un nou usuari',
+        description: 'Crea un compte nou i retorna el JWT. Rol possible: `CAP_TORN` o `METGE`. Si és `METGE`, cal proporcionar `metge_id`.',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object', required: ['nom', 'email', 'password', 'rol'],
+                properties: {
+                  nom:      { type: 'string', example: 'Dr. Nou Metge' },
+                  email:    { type: 'string', format: 'email', example: 'nou.metge@hospital.cat' },
+                  password: { type: 'string', minLength: 8, example: 'Contrasenya1!' },
+                  rol:      { type: 'string', enum: ['METGE', 'CAP_TORN'], example: 'CAP_TORN' },
+                  metge_id: { type: 'string', description: 'Obligatori si rol=METGE', nullable: true }
+                }
+              }
+            }
+          }
+        },
+        responses: {
+          201: { description: 'Compte creat correctament' },
+          400: { description: 'Validació fallida', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+          409: { description: 'Correu o perfil ja registrat', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
+        }
+      }
+    },
+
+    '/api/auth/metges-disponibles': {
+      get: {
+        tags: ['Auth'],
+        summary: 'Metges sense compte d\'usuari',
+        description: 'Llista els metges que encara no tenen un compte associat (per al formulari de registre).',
+        responses: {
+          200: {
+            description: 'Llista de metges disponibles per registrar',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      id:          { type: 'string' },
+                      nom:         { type: 'string' },
+                      especialitat:{ type: 'string' },
+                      numCollegiat:{ type: 'string' }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
 
     // ════════════════ METGES ════════════════════════════════════════════════
     '/api/metges': {

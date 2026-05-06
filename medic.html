@@ -8,6 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="auth-guard.js"></script>
 </head>
 <body>
 
@@ -42,6 +43,9 @@
                 <a href="index.html" class="btn btn-outline btn-sm switch-portal" title="Portal de Coordinació">
                     <i class="fas fa-arrow-right-arrow-left"></i> Coordinació
                 </a>
+                <button class="btn btn-outline btn-sm" id="btn-logout" title="Tancar sessió" style="gap:6px;">
+                    <i class="fas fa-sign-out-alt"></i> Sortir
+                </button>
             </div>
         </div>
     </header>
@@ -405,5 +409,11 @@
     <div class="toast-container" id="toast-container"></div>
 
     <script src="medic-app.js"></script>
+    <script>
+        document.getElementById('btn-logout').addEventListener('click', function() {
+            localStorage.removeItem('medtorn_token');
+            window.location.replace('/login.html');
+        });
+    </script>
 </body>
 </html>

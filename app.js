@@ -523,6 +523,15 @@ function formatStatus(status) {
 
 // ========== INIT ==========
 async function init() {
+    // Actualitzar capçalera amb el nom de l'usuari autenticat
+    if (window.AUTH) {
+        const nom = window.AUTH.nom || 'Cap de Torn';
+        const headerNom    = document.getElementById('header-nom');
+        const headerAvatar = document.getElementById('header-avatar');
+        if (headerNom)    headerNom.textContent = nom;
+        if (headerAvatar) headerAvatar.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(nom)}&background=1a5276&color=fff&size=36&rounded=true&bold=true`;
+    }
+
     await loadDoctors();
     updateDashboardStats();
     renderShiftOverview();
