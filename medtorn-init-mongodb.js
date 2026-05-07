@@ -290,7 +290,6 @@ const metge1Id = db.metges.insertOne({
 const metge2Id = db.metges.insertOne({
   nom:             "Dra. Marta Vidal",
   especialitat:    "Cardiologia",
-  subespecialitat: null,
   unitat:          "Planta 2",
   numCollegiat:    "080054321",
   anyExperiencia:  9,

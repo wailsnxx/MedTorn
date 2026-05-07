@@ -32,4 +32,25 @@ router.get('/', async (req, res) => {
   }
 });
 
+// POST /api/casos — Crear nou cas assignat a un metge
+router.post('/', async (req, res) => {
+  try {
+    const { metge_id, titol, pacient, sala, prioritat, hora, descripcio } = req.body;
+    if (!metge_id || !titol || !pacient || !sala || !prioritat || !hora) {
+      return res.status(400).json({ error: 'Falten camps: metge_id, titol, pacient, sala, prioritat, hora' });
+    }
+    if (!mongoose.Types.ObjectId.isValid(metge_id)) {
+      return res.status(400).json({ error: 'metge_id invàlid' });
+    }
+    if (!['ALTA', 'MITJA', 'BAIXA'].includes(prioritat)) {
+      return res.status(400).json({ error: 'prioritat invàlida' });
+    }
+    const cas = await Cas.create({ metge_id, titol, pacient, sala, prioritat, hora, descripcio: descripcio || '' });
+    res.status(201).json({ ok: true, id: cas._id });
+  } catch (err) {
+    console.error('POST /api/casos error:', err);
+    res.status(500).json({ error: 'Error intern del servidor' });
+  }
+});
+
 module.exports = router;

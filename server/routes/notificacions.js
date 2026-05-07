@@ -48,6 +48,27 @@ router.get('/', async (req, res) => {
   }
 });
 
+// POST /api/notificacions — Crear nova notificació per a un metge
+router.post('/', async (req, res) => {
+  try {
+    const { metge_id, titol, descripcio, tipus } = req.body;
+    if (!metge_id || !titol || !descripcio || !tipus) {
+      return res.status(400).json({ error: 'Falten camps: metge_id, titol, descripcio, tipus' });
+    }
+    if (!mongoose.Types.ObjectId.isValid(metge_id)) {
+      return res.status(400).json({ error: 'metge_id invàlid' });
+    }
+    if (!['INFO', 'AVIS', 'EXITO', 'PERILL'].includes(tipus)) {
+      return res.status(400).json({ error: 'tipus invàlid' });
+    }
+    const notif = await Notificacio.create({ metge_id, titol, descripcio, tipus });
+    res.status(201).json({ ok: true, id: notif._id });
+  } catch (err) {
+    console.error('POST /api/notificacions error:', err);
+    res.status(500).json({ error: 'Error intern del servidor' });
+  }
+});
+
 // PATCH /api/notificacions/:id/llegida — Marcar notificació com a llegida
 router.patch('/:id/llegida', async (req, res) => {
   try {

@@ -40,8 +40,8 @@
                     <span class="user-name" id="header-nom">Cap de Torn</span>
                     <span class="user-role">Cap de Torn</span>
                 </div>
-                <button class="btn-icon" id="btn-logout" title="Tancar sessió" style="width:auto;padding:0 12px;gap:6px;font-size:0.75rem;">
-                    <i class="fas fa-sign-out-alt"></i> Sortir
+                <button class="btn-icon" id="btn-logout" title="Tancar sessió" style="width:auto;padding:0 14px;gap:8px;font-size:0.82rem;font-weight:600;border:1.5px solid rgba(255,255,255,0.3);">
+                    <i class="fas fa-sign-out-alt"></i> Tancar sessió
                 </button>
             </div>
         </div>
@@ -138,7 +138,6 @@
         <section id="section-metges" class="section">
             <div class="section-header">
                 <h1>Directori de Metges</h1>
-                <button class="btn btn-primary" id="btn-add-doctor"><i class="fas fa-plus"></i> Afegir Metge</button>
             </div>
 
             <!-- Advanced Filters -->
@@ -338,6 +337,130 @@
                         </div>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== MODAL: ENVIAR NOTIFICACIÓ ========== -->
+    <div class="modal-overlay" id="modal-notif-overlay">
+        <div class="modal" style="width:460px;">
+            <button class="modal-close" id="modal-notif-close"><i class="fas fa-times"></i></button>
+            <div class="modal-header">
+                <div class="modal-title">
+                    <h2><i class="fas fa-paper-plane"></i> Enviar Notificació</h2>
+                    <p id="modal-notif-doctor-name"></p>
+                </div>
+            </div>
+            <div class="modal-body">
+                <div class="filter-group" style="margin-bottom:14px;">
+                    <label>Tipus</label>
+                    <select id="notif-tipus">
+                        <option value="INFO">ℹ️ Informació</option>
+                        <option value="AVIS">⚠️ Avís</option>
+                        <option value="PERILL">🚨 Perill</option>
+                        <option value="EXITO">✅ Èxit</option>
+                    </select>
+                </div>
+                <div class="filter-group" style="margin-bottom:14px;">
+                    <label>Títol</label>
+                    <input type="text" id="notif-titol" placeholder="Títol de la notificació" style="width:100%;padding:10px 12px;border:1.5px solid #d5e8f7;border-radius:8px;font-size:.95rem;box-sizing:border-box;">
+                </div>
+                <div class="filter-group" style="margin-bottom:18px;">
+                    <label>Missatge</label>
+                    <textarea id="notif-descripcio" rows="3" placeholder="Descripció del missatge…" style="width:100%;padding:10px 12px;border:1.5px solid #d5e8f7;border-radius:8px;font-size:.95rem;resize:vertical;box-sizing:border-box;font-family:inherit;"></textarea>
+                </div>
+                <button class="btn btn-primary" id="btn-notif-enviar" style="width:100%;"><i class="fas fa-paper-plane"></i> Enviar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== MODAL: ASSIGNAR CAS ========== -->
+    <div class="modal-overlay" id="modal-cas-overlay">
+        <div class="modal" style="width:520px;">
+            <button class="modal-close" id="modal-cas-close"><i class="fas fa-times"></i></button>
+            <div class="modal-header">
+                <div class="modal-title">
+                    <h2><i class="fas fa-user-plus"></i> Assignar Cas</h2>
+                    <p id="modal-cas-doctor-name"></p>
+                </div>
+            </div>
+            <div class="modal-body">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
+                    <div class="filter-group">
+                        <label>Títol del cas</label>
+                        <input type="text" id="cas-titol" placeholder="Ex: Revisió post-op" style="width:100%;padding:10px 12px;border:1.5px solid #d5e8f7;border-radius:8px;font-size:.95rem;box-sizing:border-box;">
+                    </div>
+                    <div class="filter-group">
+                        <label>Pacient</label>
+                        <input type="text" id="cas-pacient" placeholder="Nom del pacient" style="width:100%;padding:10px 12px;border:1.5px solid #d5e8f7;border-radius:8px;font-size:.95rem;box-sizing:border-box;">
+                    </div>
+                    <div class="filter-group">
+                        <label>Sala / Habitació</label>
+                        <input type="text" id="cas-sala" placeholder="Ex: Planta 2 — 204" style="width:100%;padding:10px 12px;border:1.5px solid #d5e8f7;border-radius:8px;font-size:.95rem;box-sizing:border-box;">
+                    </div>
+                    <div class="filter-group">
+                        <label>Hora</label>
+                        <input type="time" id="cas-hora" style="width:100%;padding:10px 12px;border:1.5px solid #d5e8f7;border-radius:8px;font-size:.95rem;box-sizing:border-box;">
+                    </div>
+                </div>
+                <div class="filter-group" style="margin-bottom:14px;">
+                    <label>Prioritat</label>
+                    <select id="cas-prioritat">
+                        <option value="ALTA">🔴 Alta</option>
+                        <option value="MITJA">🟡 Mitjana</option>
+                        <option value="BAIXA">🟢 Baixa</option>
+                    </select>
+                </div>
+                <div class="filter-group" style="margin-bottom:18px;">
+                    <label>Descripció (opcional)</label>
+                    <textarea id="cas-descripcio" rows="2" placeholder="Detalls addicionals…" style="width:100%;padding:10px 12px;border:1.5px solid #d5e8f7;border-radius:8px;font-size:.95rem;resize:vertical;box-sizing:border-box;font-family:inherit;"></textarea>
+                </div>
+                <button class="btn btn-success" id="btn-cas-assignar" style="width:100%;"><i class="fas fa-user-plus"></i> Assignar cas</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== MODAL: CANVI DE TORN ========== -->
+    <div class="modal-overlay" id="modal-torn-overlay">
+        <div class="modal" style="width:480px;">
+            <button class="modal-close" id="modal-torn-close"><i class="fas fa-times"></i></button>
+            <div class="modal-header">
+                <div class="modal-title">
+                    <h2><i class="fas fa-exchange-alt"></i> Assignar Torn</h2>
+                    <p id="modal-torn-doctor-name"></p>
+                </div>
+            </div>
+            <div class="modal-body">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
+                    <div class="filter-group">
+                        <label>Data</label>
+                        <input type="date" id="torn-data" style="width:100%;padding:10px 12px;border:1.5px solid #d5e8f7;border-radius:8px;font-size:.95rem;box-sizing:border-box;">
+                    </div>
+                    <div class="filter-group">
+                        <label>Tipus de torn</label>
+                        <select id="torn-tipus">
+                            <option value="MATI">🌅 Matí (08-15h)</option>
+                            <option value="TARDA">🌇 Tarda (15-22h)</option>
+                            <option value="NIT">🌙 Nit (22-08h)</option>
+                            <option value="GUARDIA">🏥 Guàrdia (24h)</option>
+                            <option value="LLIURE">🏖️ Lliure</option>
+                            <option value="BAIXA">🤒 Baixa</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label>Hora inici</label>
+                        <input type="time" id="torn-hora-inici" style="width:100%;padding:10px 12px;border:1.5px solid #d5e8f7;border-radius:8px;font-size:.95rem;box-sizing:border-box;">
+                    </div>
+                    <div class="filter-group">
+                        <label>Hora final</label>
+                        <input type="time" id="torn-hora-final" style="width:100%;padding:10px 12px;border:1.5px solid #d5e8f7;border-radius:8px;font-size:.95rem;box-sizing:border-box;">
+                    </div>
+                </div>
+                <div class="filter-group" style="margin-bottom:18px;">
+                    <label>Unitat</label>
+                    <input type="text" id="torn-unitat" placeholder="Ex: Urgències" style="width:100%;padding:10px 12px;border:1.5px solid #d5e8f7;border-radius:8px;font-size:.95rem;box-sizing:border-box;">
+                </div>
+                <button class="btn btn-primary" id="btn-torn-assignar" style="width:100%;"><i class="fas fa-exchange-alt"></i> Assignar torn</button>
             </div>
         </div>
     </div>

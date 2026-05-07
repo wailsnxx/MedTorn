@@ -453,9 +453,12 @@ document.getElementById('btn-suggest').addEventListener('click', () => {
 });
 
 // ========== DOCTOR MODAL ==========
+let activeDoctorId = null;
+
 function openDoctorModal(id) {
     const d = doctors.find(doc => String(doc.id) === String(id));
     if (!d) return;
+    activeDoctorId = d.id;
 
     document.getElementById('modal-name').textContent = d.name;
     document.getElementById('modal-specialty').textContent = `${d.specialty} — ${d.subspecialty}`;
@@ -497,6 +500,130 @@ document.getElementById('modal-overlay').addEventListener('click', (e) => {
     if (e.target === e.currentTarget) {
         document.getElementById('modal-overlay').classList.remove('open');
     }
+});
+
+// Botons d'acció del modal del metge
+document.querySelector('#modal-overlay .modal-actions .btn-primary').addEventListener('click', () => {
+    const d = doctors.find(doc => String(doc.id) === String(activeDoctorId));
+    document.getElementById('modal-overlay').classList.remove('open');
+    document.getElementById('modal-notif-doctor-name').textContent = d ? d.name : '';
+    document.getElementById('modal-notif-overlay').classList.add('open');
+});
+
+document.querySelector('#modal-overlay .modal-actions .btn-success').addEventListener('click', () => {
+    const d = doctors.find(doc => String(doc.id) === String(activeDoctorId));
+    document.getElementById('modal-overlay').classList.remove('open');
+    document.getElementById('modal-cas-doctor-name').textContent = d ? d.name : '';
+    document.getElementById('modal-cas-overlay').classList.add('open');
+    document.getElementById('cas-hora').value = new Date().toTimeString().slice(0, 5);
+});
+
+document.querySelector('#modal-overlay .modal-actions .btn-outline').addEventListener('click', () => {
+    const d = doctors.find(doc => String(doc.id) === String(activeDoctorId));
+    document.getElementById('modal-overlay').classList.remove('open');
+    document.getElementById('modal-torn-doctor-name').textContent = d ? d.name : '';
+    document.getElementById('modal-torn-overlay').classList.add('open');
+    document.getElementById('torn-data').value = new Date().toISOString().split('T')[0];
+    if (d) document.getElementById('torn-unitat').value = d.unit || '';
+    document.getElementById('torn-tipus').dispatchEvent(new Event('change'));
+});
+
+// Tanca modals d'acció
+['notif', 'cas', 'torn'].forEach(name => {
+    const overlay = document.getElementById(`modal-${name}-overlay`);
+    document.getElementById(`modal-${name}-close`).addEventListener('click', () => overlay.classList.remove('open'));
+    overlay.addEventListener('click', e => { if (e.target === overlay) overlay.classList.remove('open'); });
+});
+
+// Auto-omplir hores quan canvia el tipus de torn
+const TORN_HORES = {
+    MATI:    { inici: '08:00', final: '15:00' },
+    TARDA:   { inici: '15:00', final: '22:00' },
+    NIT:     { inici: '22:00', final: '08:00' },
+    GUARDIA: { inici: '08:00', final: '08:00' },
+    LLIURE:  { inici: '00:00', final: '23:59' },
+    BAIXA:   { inici: '00:00', final: '23:59' },
+};
+document.getElementById('torn-tipus').addEventListener('change', function () {
+    const h = TORN_HORES[this.value];
+    if (h) {
+        document.getElementById('torn-hora-inici').value = h.inici;
+        document.getElementById('torn-hora-final').value = h.final;
+    }
+});
+
+// ── Enviar notificació ────────────────────────────────────────
+document.getElementById('btn-notif-enviar').addEventListener('click', async function () {
+    const titol      = document.getElementById('notif-titol').value.trim();
+    const descripcio = document.getElementById('notif-descripcio').value.trim();
+    const tipus      = document.getElementById('notif-tipus').value;
+    if (!titol || !descripcio) { showToast('Omple el títol i el missatge', 'error'); return; }
+
+    this.disabled = true;
+    try {
+        const res = await fetch(`${API}/notificacions`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ metge_id: activeDoctorId, titol, descripcio, tipus })
+        });
+        const data = await res.json();
+        if (!res.ok) { showToast(data.error || 'Error en enviar', 'error'); return; }
+        document.getElementById('modal-notif-overlay').classList.remove('open');
+        document.getElementById('notif-titol').value = '';
+        document.getElementById('notif-descripcio').value = '';
+        showToast('Notificació enviada correctament');
+    } catch { showToast('Error de connexió', 'error'); }
+    finally { this.disabled = false; }
+});
+
+// ── Assignar cas ──────────────────────────────────────────────
+document.getElementById('btn-cas-assignar').addEventListener('click', async function () {
+    const titol      = document.getElementById('cas-titol').value.trim();
+    const pacient    = document.getElementById('cas-pacient').value.trim();
+    const sala       = document.getElementById('cas-sala').value.trim();
+    const hora       = document.getElementById('cas-hora').value;
+    const prioritat  = document.getElementById('cas-prioritat').value;
+    const descripcio = document.getElementById('cas-descripcio').value.trim();
+    if (!titol || !pacient || !sala || !hora) { showToast('Omple tots els camps obligatoris', 'error'); return; }
+
+    this.disabled = true;
+    try {
+        const res = await fetch(`${API}/casos`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ metge_id: activeDoctorId, titol, pacient, sala, hora, prioritat, descripcio })
+        });
+        const data = await res.json();
+        if (!res.ok) { showToast(data.error || 'Error en assignar', 'error'); return; }
+        document.getElementById('modal-cas-overlay').classList.remove('open');
+        ['cas-titol','cas-pacient','cas-sala','cas-descripcio'].forEach(id => document.getElementById(id).value = '');
+        showToast('Cas assignat correctament');
+    } catch { showToast('Error de connexió', 'error'); }
+    finally { this.disabled = false; }
+});
+
+// ── Assignar torn ─────────────────────────────────────────────
+document.getElementById('btn-torn-assignar').addEventListener('click', async function () {
+    const data      = document.getElementById('torn-data').value;
+    const tipusTorn = document.getElementById('torn-tipus').value;
+    const horaInici = document.getElementById('torn-hora-inici').value;
+    const horaFinal = document.getElementById('torn-hora-final').value;
+    const unitat    = document.getElementById('torn-unitat').value.trim();
+    if (!data || !horaInici || !horaFinal || !unitat) { showToast('Omple tots els camps', 'error'); return; }
+
+    this.disabled = true;
+    try {
+        const res = await fetch(`${API}/torns`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ metge_id: activeDoctorId, data, tipusTorn, horaInici, horaFinal, unitat })
+        });
+        const json = await res.json();
+        if (!res.ok) { showToast(json.error || 'Error en assignar', 'error'); return; }
+        document.getElementById('modal-torn-overlay').classList.remove('open');
+        showToast('Torn assignat correctament');
+    } catch { showToast('Error de connexió', 'error'); }
+    finally { this.disabled = false; }
 });
 
 // ========== TOAST NOTIFICATION ==========

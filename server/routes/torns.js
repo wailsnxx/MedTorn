@@ -71,4 +71,25 @@ router.get('/monthly/:metge_id', async (req, res) => {
   }
 });
 
+// POST /api/torns — Crear nou torn per a un metge
+router.post('/', async (req, res) => {
+  try {
+    const { metge_id, data, tipusTorn, horaInici, horaFinal, unitat } = req.body;
+    if (!metge_id || !data || !tipusTorn || !horaInici || !horaFinal || !unitat) {
+      return res.status(400).json({ error: 'Falten camps: metge_id, data, tipusTorn, horaInici, horaFinal, unitat' });
+    }
+    if (!mongoose.Types.ObjectId.isValid(metge_id)) {
+      return res.status(400).json({ error: 'metge_id invàlid' });
+    }
+    if (!['MATI', 'TARDA', 'NIT', 'GUARDIA', 'LLIURE', 'BAIXA'].includes(tipusTorn)) {
+      return res.status(400).json({ error: 'tipusTorn invàlid' });
+    }
+    const torn = await Torn.create({ metge_id, data: new Date(data), tipusTorn, horaInici, horaFinal, unitat });
+    res.status(201).json({ ok: true, id: torn._id });
+  } catch (err) {
+    console.error('POST /api/torns error:', err);
+    res.status(500).json({ error: 'Error intern del servidor' });
+  }
+});
+
 module.exports = router;
