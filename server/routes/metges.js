@@ -5,6 +5,31 @@ const mongoose = require('mongoose');
 const Metge    = require('../models/Metge');
 const Torn     = require('../models/Torn');
 
+function parseTimeOnDate(baseDate, hhmm) {
+  const [h, m] = hhmm.split(':').map(Number);
+  const d = new Date(baseDate);
+  d.setHours(h, m, 0, 0);
+  return d;
+}
+
+function isShiftActiveNow(torn, now = new Date()) {
+  if (!torn || ['LLIURE', 'BAIXA'].includes(torn.tipusTorn)) return false;
+  const day = new Date(torn.data);
+  const start = parseTimeOnDate(day, torn.horaInici);
+  let end = parseTimeOnDate(day, torn.horaFinal);
+  if (end <= start) end.setDate(end.getDate() + 1);
+  return now >= start && now <= end;
+}
+
+function toFrontendStatus(estatDb, tornActual) {
+  if (estatDb === 'BAIXA') return 'baixa';
+  if (estatDb === 'VACANCES') return 'vacances';
+  if (estatDb === 'PAUSA') return 'disponible';
+  if (estatDb === 'OCUPAT') return 'en-torn';
+  if (isShiftActiveNow(tornActual)) return 'en-torn';
+  return 'disponible';
+}
+
 // Construeix el filtre de cerca des dels query params
 function buildFilter(query) {
   const filter = {};
@@ -57,8 +82,26 @@ router.get('/', async (req, res) => {
     const ids = metges.map(m => m._id);
     const torns = await Torn.find({
       metge_id: { $in: ids },
-      data: { $gte: monday, $lte: sunday }
+      data: { $gte: monday, $lte: sunday },
+      expiresAt: { $gt: now }
     }).lean();
+
+    const todayStart = new Date(now);
+    todayStart.setHours(0, 0, 0, 0);
+    const todayEnd = new Date(now);
+    todayEnd.setHours(23, 59, 59, 999);
+    const tornsAvui = await Torn.find({
+      metge_id: { $in: ids },
+      data: { $gte: todayStart, $lte: todayEnd },
+      expiresAt: { $gt: now }
+    }).lean();
+    const tornActualByMetge = {};
+    tornsAvui.forEach(t => {
+      const key = t.metge_id.toString();
+      if (!tornActualByMetge[key] && isShiftActiveNow(t, now)) {
+        tornActualByMetge[key] = t;
+      }
+    });
 
     // Indexar torns per metge_id i dia de la setmana (0=dl, 6=dg)
     const tornsByMetge = {};
@@ -71,13 +114,9 @@ router.get('/', async (req, res) => {
       tornsByMetge[key][adjusted] = TIPUS_MAP[t.tipusTorn] || 'L';
     });
 
-    const ESTAT_MAP = {
-      DISPONIBLE: 'disponible', EN_TORN: 'en-torn', BAIXA: 'baixa',
-      VACANCES: 'vacances', OCUPAT: 'en-torn', PAUSA: 'disponible'
-    };
-
     const result = metges.map((m, i) => {
       const shiftsMap = tornsByMetge[m._id.toString()] || {};
+      const tornActual = tornActualByMetge[m._id.toString()] || null;
       const shifts = Array.from({ length: 7 }, (_, idx) => {
         if (m.estat === 'BAIXA') return 'B';
         if (m.estat === 'VACANCES') return 'L';
@@ -93,7 +132,7 @@ router.get('/', async (req, res) => {
         collegiat:   m.numCollegiat,
         experience:  m.anyExperiencia,
         languages:   m.idiomes || [],
-        status:      ESTAT_MAP[m.estat] || 'disponible',
+        status:      toFrontendStatus(m.estat, tornActual),
         estat:       m.estat,
         avatar:      m.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(m.nom)}&background=1a5276&color=fff&size=120&rounded=true&bold=true`,
         competences: (m.competencies || []).map(c => c.nom),
@@ -115,12 +154,38 @@ router.get('/', async (req, res) => {
 // GET /api/metges/stats — Estadístiques ràpides per al dashboard
 router.get('/stats', async (req, res) => {
   try {
-    const [disponibles, enTorn, baixa, vacances] = await Promise.all([
-      Metge.countDocuments({ estat: 'DISPONIBLE' }),
-      Metge.countDocuments({ estat: { $in: ['EN_TORN', 'OCUPAT'] } }),
-      Metge.countDocuments({ estat: 'BAIXA' }),
-      Metge.countDocuments({ estat: 'VACANCES' })
-    ]);
+    const now = new Date();
+    const metges = await Metge.find({}, 'estat').lean();
+    const ids = metges.map(m => m._id);
+    const todayStart = new Date(now);
+    todayStart.setHours(0, 0, 0, 0);
+    const todayEnd = new Date(now);
+    todayEnd.setHours(23, 59, 59, 999);
+    const tornsAvui = await Torn.find({
+      metge_id: { $in: ids },
+      data: { $gte: todayStart, $lte: todayEnd },
+      expiresAt: { $gt: now }
+    }).lean();
+    const tornActualByMetge = {};
+    tornsAvui.forEach(t => {
+      const key = t.metge_id.toString();
+      if (!tornActualByMetge[key] && isShiftActiveNow(t, now)) {
+        tornActualByMetge[key] = t;
+      }
+    });
+
+    let disponibles = 0;
+    let enTorn = 0;
+    let baixa = 0;
+    let vacances = 0;
+    metges.forEach(m => {
+      if (m.estat === 'BAIXA') { baixa++; return; }
+      if (m.estat === 'VACANCES') { vacances++; return; }
+      const s = toFrontendStatus(m.estat, tornActualByMetge[m._id.toString()]);
+      if (s === 'en-torn') enTorn++;
+      else disponibles++;
+    });
+
     res.json({ disponibles, enTorn, baixa, reemplacaments: baixa + vacances });
   } catch (err) {
     console.error('GET /api/metges/stats error:', err);

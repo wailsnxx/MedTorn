@@ -7,7 +7,7 @@ const Torn    = require('../models/Torn');
 // GET /api/torns — Torns (filtre per metge_id i/o rang de dates)
 router.get('/', async (req, res) => {
   try {
-    const filter = {};
+    const filter = { expiresAt: { $gt: new Date() } };
     if (req.query.metge_id) {
       if (!mongoose.Types.ObjectId.isValid(req.query.metge_id)) {
         return res.status(400).json({ error: 'metge_id invàlid' });
@@ -53,7 +53,8 @@ router.get('/monthly/:metge_id', async (req, res) => {
 
     const torns = await Torn.find({
       metge_id: req.params.metge_id,
-      data: { $gte: inici, $lte: final }
+      data: { $gte: inici, $lte: final },
+      expiresAt: { $gt: new Date() }
     }).lean();
 
     const TIPUS_MAP = { MATI: 'M', TARDA: 'T', NIT: 'N', GUARDIA: 'G', LLIURE: 'L', BAIXA: 'B' };

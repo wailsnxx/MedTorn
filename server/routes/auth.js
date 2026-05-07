@@ -44,7 +44,7 @@ router.get('/metges-disponibles', async (req, res) => {
 // ── POST /api/auth/register ───────────────────────────────────
 router.post('/register', async (req, res) => {
   try {
-    const { nom, email, password, rol, metge_id } = req.body;
+    const { nom, email, password, rol, numCollegiat } = req.body;
 
     // Validació bàsica
     if (!nom || !email || !password || !rol) {
@@ -67,18 +67,18 @@ router.post('/register', async (req, res) => {
       return res.status(409).json({ error: 'Ja existeix un compte amb aquest correu electrònic' });
     }
 
-    // Si és METGE, verificar que el metge_id és vàlid i disponible
+    // Si és METGE, verificar que el numCollegiat existeix i està disponible
     let metgeDoc = null;
     if (rol === 'METGE') {
-      if (!metge_id || !mongoose.Types.ObjectId.isValid(metge_id)) {
-        return res.status(400).json({ error: 'Cal seleccionar un perfil mèdic vàlid' });
+      if (!numCollegiat || !numCollegiat.trim()) {
+        return res.status(400).json({ error: 'Cal introduir el número de col·legiat' });
       }
-      metgeDoc = await Metge.findById(metge_id);
+      metgeDoc = await Metge.findOne({ numCollegiat: numCollegiat.trim() });
       if (!metgeDoc) {
-        return res.status(404).json({ error: 'Perfil mèdic no trobat' });
+        return res.status(404).json({ error: 'Identificador de col·legiat no trobat' });
       }
       // Comprovar que el metge no té ja un compte
-      const metgePres = await Usuari.findOne({ metge_id });
+      const metgePres = await Usuari.findOne({ metge_id: metgeDoc._id });
       if (metgePres) {
         return res.status(409).json({ error: 'Aquest perfil mèdic ja té un compte associat' });
       }
@@ -90,7 +90,7 @@ router.post('/register', async (req, res) => {
       email:    email.toLowerCase().trim(),
       password,
       rol,
-      metge_id: rol === 'METGE' ? metge_id : null
+      metge_id: rol === 'METGE' ? metgeDoc._id : null
     });
 
     const token = signToken(nouUsuari);

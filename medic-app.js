@@ -4,9 +4,7 @@
    ============================================= */
 
 const API = '/api';
-
-// Identificador del metge logat (num. col·legiat fix per al prototip)
-const ME_COLLEGIAT = '080012345';
+let liveRefreshTimer = null;
 
 // ========== ESTAT (s'omple des del backend) ==========
 let ME = {
@@ -16,7 +14,7 @@ let ME = {
     specialty: "Cardiologia",
     subspecialty: "Cardiologia Intervencionista",
     unit: "Planta 2 — Cardiologia",
-    collegiat: ME_COLLEGIAT,
+    collegiat: '',
     experience: 14,
     languages: ["Català", "Castellà", "Anglès"],
     competences: [
@@ -131,7 +129,7 @@ async function loadColleagues() {
         const res = await fetch(`${API}/metges`);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const all = await res.json();
-        return all.filter(m => String(m.collegiat) !== ME_COLLEGIAT).slice(0, 8);
+        return all.filter(m => String(m.id) !== String(ME.id)).slice(0, 8);
     } catch (err) {
         console.error('Error carregant companys:', err);
         return [];
@@ -643,37 +641,40 @@ async function init() {
         if (headerRole) headerRole.textContent = ME.specialty;
     }
 
-    // 3. Carregar dades en paral·lel
-    const now = new Date();
-    const [notifs, cases, colleagues, myReqs, inReqs] = await Promise.all([
-        loadNotifications(),
-        loadMyCases(),
-        loadColleagues(),
-        loadMyRequests(),
-        loadIncomingRequests(),
-        loadMyShifts(now.getFullYear(), now.getMonth() + 1)
-    ]);
+    const refreshLiveData = async () => {
+        const [notifs, cases, colleagues, myReqs, inReqs] = await Promise.all([
+            loadNotifications(),
+            loadMyCases(),
+            loadColleagues(),
+            loadMyRequests(),
+            loadIncomingRequests(),
+            loadMyShifts(currentYear, currentMonth + 1)
+        ]);
 
-    NOTIFICATIONS    = notifs;
-    MY_CASES         = cases;
-    COLLEAGUES       = colleagues;
-    MY_REQUESTS      = myReqs;
-    INCOMING_REQUESTS = inReqs;
+        NOTIFICATIONS     = notifs;
+        MY_CASES          = cases;
+        COLLEAGUES        = colleagues;
+        MY_REQUESTS       = myReqs;
+        INCOMING_REQUESTS = inReqs;
 
-    // 4. Actualitzar badge de notificacions
-    const unreadCount = NOTIFICATIONS.filter(n => n.unread).length;
-    const badge = document.getElementById('notif-badge');
-    if (badge) {
-        badge.textContent = unreadCount;
-        badge.style.display = unreadCount > 0 ? '' : 'none';
-    }
+        const unreadCount = NOTIFICATIONS.filter(n => n.unread).length;
+        const badge = document.getElementById('notif-badge');
+        if (badge) {
+            badge.textContent = unreadCount;
+            badge.style.display = unreadCount > 0 ? '' : 'none';
+        }
 
-    // 5. Renderitzar
-    renderNotifications();
-    renderHome();
-    renderSchedule();
-    renderProfile();
-    renderRequests();
+        renderNotifications();
+        renderHome();
+        renderSchedule();
+        renderProfile();
+        renderRequests();
+    };
+
+    await refreshLiveData();
+
+    if (liveRefreshTimer) clearInterval(liveRefreshTimer);
+    liveRefreshTimer = setInterval(refreshLiveData, 30000);
 }
 
 document.addEventListener('DOMContentLoaded', init);

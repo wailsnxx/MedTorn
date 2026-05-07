@@ -61,6 +61,11 @@ const DOCTOR_NAMES = [
 const pick  = arr => arr[Math.floor(Math.random() * arr.length)];
 const pickN = (arr, n) => [...arr].sort(() => 0.5 - Math.random()).slice(0, n);
 const rInt  = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
+const addDays = (date, days) => {
+  const d = new Date(date);
+  d.setDate(d.getDate() + days);
+  return d;
+};
 
 const SHIFT_TYPES = ['MATI','TARDA','NIT','GUARDIA','LLIURE'];
 
@@ -160,20 +165,21 @@ async function seed() {
         horaInici: hJordi.horaInici,
         horaFinal: hJordi.horaFinal,
         unitat:    jordiPuig.unitat,
-        metge_id:  jordiPuig._id
+        metge_id:  jordiPuig._id,
+        expiresAt: addDays(data, 30)
       });
 
       // Torns per a la resta de metges
       for (const metge of metges) {
         if (metge._id.equals(jordiPuig._id)) continue;
         if (metge.estat === 'BAIXA') {
-          torns.push({ data, tipusTorn: 'BAIXA', horaInici: '00:00', horaFinal: '00:00', unitat: metge.unitat, metge_id: metge._id });
+          torns.push({ data, tipusTorn: 'BAIXA', horaInici: '00:00', horaFinal: '00:00', unitat: metge.unitat, metge_id: metge._id, expiresAt: addDays(data, 30) });
         } else if (metge.estat === 'VACANCES') {
-          torns.push({ data, tipusTorn: 'LLIURE', horaInici: '00:00', horaFinal: '00:00', unitat: metge.unitat, metge_id: metge._id });
+          torns.push({ data, tipusTorn: 'LLIURE', horaInici: '00:00', horaFinal: '00:00', unitat: metge.unitat, metge_id: metge._id, expiresAt: addDays(data, 30) });
         } else {
           const tipusTorn = day === 6 ? 'LLIURE' : pick(SHIFT_TYPES);
           const h = TORN_HOURS[tipusTorn];
-          torns.push({ data, tipusTorn, horaInici: h.horaInici, horaFinal: h.horaFinal, unitat: metge.unitat, metge_id: metge._id });
+          torns.push({ data, tipusTorn, horaInici: h.horaInici, horaFinal: h.horaFinal, unitat: metge.unitat, metge_id: metge._id, expiresAt: addDays(data, 30) });
         }
       }
     }
@@ -192,21 +198,22 @@ async function seed() {
 
   // ── Sol·licituds ──
   console.log('📋  Inserint sol·licituds...');
+  const nowReq = new Date();
   await Solicitud.insertMany([
     {
-      tipus: 'VACANCES', dataCreacio: new Date('2026-02-10'),
-      dataInici: new Date('2026-03-15'), dataFinal: new Date('2026-03-20'),
+      tipus: 'VACANCES', dataCreacio: addDays(nowReq, -5),
+      dataInici: addDays(nowReq, 10), dataFinal: addDays(nowReq, 15),
       tornAfectat: 'MATI', motiu: 'Vacances familiars programades',
       estat: 'APROVADA', metge_solicitant_id: jordiPuig._id
     },
     {
-      tipus: 'CANVI_TORN', dataCreacio: new Date('2026-02-20'),
-      dataInici: new Date('2026-03-04'),
+      tipus: 'CANVI_TORN', dataCreacio: addDays(nowReq, -2),
+      dataInici: addDays(nowReq, 2),
       tornAfectat: 'MATI', motiu: 'Visita mèdica personal al matí',
       estat: 'PENDENT', metge_solicitant_id: jordiPuig._id
     },
     {
-      tipus: 'PERMUTA', dataCreacio: new Date('2026-02-22'),
+      tipus: 'PERMUTA', dataCreacio: addDays(nowReq, -1),
       tornAfectat: 'MATI', motiu: 'Acord mutu per conciliació',
       estat: 'PENDENT',
       metge_solicitant_id: jordiPuig._id,

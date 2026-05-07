@@ -7,6 +7,7 @@ const path        = require('path');
 const swaggerUi   = require('swagger-ui-express');
 const swaggerSpec = require('./config/swagger');
 const connectDB   = require('./config/db');
+const Torn        = require('./models/Torn');
 
 const app  = express();
 const PORT = process.env.PORT || 3000;
@@ -51,6 +52,25 @@ app.get('*', (req, res) => {
 // ── Arrencada ────────────────────────────────────────────────
 (async () => {
   await connectDB();
+
+  // Backfill suau per torns antics sense expiresAt (1 sola passada a l'arrencada)
+  const legacy = await Torn.find({ expiresAt: { $exists: false } }, '_id data').lean();
+  if (legacy.length) {
+    const ops = legacy.map(t => {
+      const exp = new Date(t.data);
+      exp.setHours(23, 59, 59, 999);
+      exp.setDate(exp.getDate() + 30);
+      return {
+        updateOne: {
+          filter: { _id: t._id },
+          update: { $set: { expiresAt: exp } }
+        }
+      };
+    });
+    await Torn.bulkWrite(ops);
+    console.log(`✔ Backfill torns expirables: ${legacy.length}`);
+  }
+
   app.listen(PORT, () => {
     console.log(`✔ MedTorn servidor actiu → http://localhost:${PORT}`);
     console.log(`  Portal Coordinació → http://localhost:${PORT}/index.html`);

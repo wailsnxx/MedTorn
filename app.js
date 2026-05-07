@@ -39,6 +39,7 @@ const LANGUAGES = ["Català", "Castellà", "Anglès", "Francès", "Àrab", "Xin�
 // ========== API STATE ==========
 let doctors = [];
 let currentWeekOffset = 0;
+let liveRefreshTimer = null;
 
 // ── Carrega tots els metges des del backend ──────────────────
 async function loadDoctors() {
@@ -133,34 +134,36 @@ function renderShiftOverview() {
 function renderAlerts() {
     const container = document.getElementById('alert-list');
     const baixaDoctors = doctors.filter(d => d.status === 'baixa');
+    const enTornDoctors = doctors.filter(d => d.status === 'en-torn');
+    const shiftLabel = getCurrentShiftLabel();
     const alerts = [
         {
             type: 'critical',
             icon: 'fa-exclamation-circle',
             title: `${baixaDoctors.length} metge(s) de baixa avui`,
             desc: baixaDoctors.map(d => d.name).join(', ') || 'Cap',
-            time: 'Fa 15 min'
+            time: `Actualitzat ${new Date().toLocaleTimeString('ca-ES', { hour: '2-digit', minute: '2-digit' })}`
         },
         {
-            type: 'warning',
-            icon: 'fa-exchange-alt',
-            title: 'Canvi de torn pendent',
-            desc: 'Dr. Sergi López ha sol·licitat un canvi de torn per demà',
-            time: 'Fa 1 hora'
+            type: enTornDoctors.length < 3 ? 'warning' : 'info',
+            icon: 'fa-user-clock',
+            title: `${enTornDoctors.length} metge(s) en torn actiu (${shiftLabel})`,
+            desc: enTornDoctors.slice(0, 3).map(d => d.name).join(', ') || 'Sense cobertura activa',
+            time: 'Temps real'
         },
         {
             type: 'info',
             icon: 'fa-info-circle',
-            title: 'Cobertura mínima assolida a UCI',
-            desc: 'La UCI té 2 metges assignats. Mínim recomanat: 2',
-            time: 'Fa 2 hores'
+            title: `Cobertura total: ${doctors.length} professionals`,
+            desc: `Disponibles/actius: ${doctors.filter(d => d.status !== 'baixa').length}`,
+            time: 'Sincronitzat'
         },
         {
             type: 'warning',
-            icon: 'fa-user-clock',
-            title: "Pic d'urgències previst",
-            desc: 'Previsió alta demanda a Urgències aquest vespre',
-            time: 'Fa 3 hores'
+            icon: 'fa-sync-alt',
+            title: 'Monitorització automàtica activa',
+            desc: 'El panell es refresca cada 30 segons sense recarregar',
+            time: 'Live'
         }
     ];
 
@@ -533,13 +536,22 @@ async function init() {
     }
 
     await loadDoctors();
-    updateDashboardStats();
-    renderShiftOverview();
-    renderAlerts();
-    renderQuickResults();
     populateFilters();
-    renderDoctorsGrid();
-    renderShiftTable();
+
+    const refreshAll = async () => {
+        await loadDoctors();
+        updateDashboardStats();
+        renderShiftOverview();
+        renderAlerts();
+        renderQuickResults();
+        renderDoctorsGrid();
+        renderShiftTable();
+    };
+
+    await refreshAll();
+
+    if (liveRefreshTimer) clearInterval(liveRefreshTimer);
+    liveRefreshTimer = setInterval(refreshAll, 30000);
 }
 
 document.addEventListener('DOMContentLoaded', init);

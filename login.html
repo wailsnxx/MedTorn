@@ -431,13 +431,10 @@
             </div>
 
             <div id="metge-selector-wrap" class="field">
-                <label for="reg-metge">Perfil mèdic</label>
+                <label for="reg-collegiat">Número de col·legiat</label>
                 <div class="input-wrap">
                     <i class="fas fa-id-card icon-left"></i>
-                    <select id="reg-metge">
-                        <option value="">Carregant perfils…</option>
-                    </select>
-                    <i class="fas fa-chevron-down icon-right" style="pointer-events:none"></i>
+                    <input type="text" id="reg-collegiat" placeholder="Ex: 080012345" autocomplete="off">
                 </div>
             </div>
 
@@ -472,39 +469,12 @@ document.getElementById('toggle-login-pw').addEventListener('click', () => toggl
 document.getElementById('toggle-reg-pw').addEventListener('click',   () => togglePw('reg-password',   'toggle-reg-pw'));
 
 // ── Mostrar/amagar selector de metge ─────────────────────────
-var metgesCarregats = false;
 document.querySelectorAll('input[name="reg-rol"]').forEach(function(radio) {
     radio.addEventListener('change', function () {
         var wrap = document.getElementById('metge-selector-wrap');
-        if (this.value === 'METGE') {
-            wrap.classList.add('visible');
-            if (!metgesCarregats) carregarMetges();
-        } else {
-            wrap.classList.remove('visible');
-        }
+        wrap.classList.toggle('visible', this.value === 'METGE');
     });
 });
-
-async function carregarMetges() {
-    metgesCarregats = true;
-    var sel = document.getElementById('reg-metge');
-    try {
-        var res  = await fetch('/api/auth/metges-disponibles');
-        var list = await res.json();
-        sel.innerHTML = '<option value="">— Selecciona el teu perfil —</option>';
-        list.forEach(function(m) {
-            var opt = document.createElement('option');
-            opt.value = m.id;
-            opt.textContent = m.nom + ' · ' + m.especialitat + ' (Col. ' + m.numCollegiat + ')';
-            sel.appendChild(opt);
-        });
-        if (list.length === 0) {
-            sel.innerHTML = '<option value="">Tots els perfils ja tenen compte</option>';
-        }
-    } catch (e) {
-        sel.innerHTML = '<option value="">Error carregant perfils</option>';
-    }
-}
 
 // ── Mostrar alerta ─────────────────────────────────────────────
 function showAlert(id, msg, type) {
@@ -571,8 +541,8 @@ document.getElementById('btn-register').addEventListener('click', async function
     var email    = document.getElementById('reg-email').value.trim();
     var pw1      = document.getElementById('reg-password').value;
     var pw2      = document.getElementById('reg-password2').value;
-    var rol      = document.querySelector('input[name="reg-rol"]:checked').value;
-    var metge_id = document.getElementById('reg-metge').value;
+    var rol          = document.querySelector('input[name="reg-rol"]:checked').value;
+    var numCollegiat = document.getElementById('reg-collegiat').value.trim();
 
     if (!nom || !email || !pw1 || !pw2) {
         showAlert('reg-alert', 'Omple tots els camps obligatoris.', 'error');
@@ -586,8 +556,8 @@ document.getElementById('btn-register').addEventListener('click', async function
         showAlert('reg-alert', 'La contrasenya ha de tenir mínim 8 caràcters.', 'error');
         return;
     }
-    if (rol === 'METGE' && !metge_id) {
-        showAlert('reg-alert', 'Selecciona el teu perfil mèdic.', 'error');
+    if (rol === 'METGE' && !numCollegiat) {
+        showAlert('reg-alert', 'Introdueix el teu número de col·legiat.', 'error');
         return;
     }
 
@@ -596,7 +566,7 @@ document.getElementById('btn-register').addEventListener('click', async function
 
     try {
         var body = { nom, email, password: pw1, rol };
-        if (rol === 'METGE') body.metge_id = metge_id;
+        if (rol === 'METGE') body.numCollegiat = numCollegiat;
 
         var res  = await fetch('/api/auth/register', {
             method: 'POST',
