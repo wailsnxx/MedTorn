@@ -9,11 +9,11 @@ const competenciaSchema = new mongoose.Schema({
 
 const metgeSchema = new mongoose.Schema({
   nom:             { type: String, required: true },
-  especialitat:    { type: String, required: true },
+  especialitat:    { type: String, default: 'Pendent' },
   subespecialitat: { type: String, default: null },
-  unitat:          { type: String, required: true },
+  unitat:          { type: String, default: 'Pendent' },
   numCollegiat:    { type: String, required: true, unique: true },
-  anyExperiencia:  { type: Number, required: true, min: 0 },
+  anyExperiencia:  { type: Number, default: 0, min: 0 },
   idiomes:         [{ type: String }],
   estat: {
     type: String,

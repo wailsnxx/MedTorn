@@ -682,3 +682,142 @@ async function init() {
 }
 
 document.addEventListener('DOMContentLoaded', init);
+
+// ========== COL·LEGIATS AUTORITZATS ==========
+
+function getAuthHeaders() {
+    const token = localStorage.getItem('medtorn_token');
+    return {
+        'Content-Type': 'application/json',
+        'Authorization': token ? `Bearer ${token}` : ''
+    };
+}
+
+async function loadCollegiats() {
+    try {
+        const res = await fetch(`${API}/collegiats`, { headers: getAuthHeaders() });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        renderCollegiatsList(data);
+    } catch (err) {
+        console.error('Error carregant col·legiats:', err);
+        document.getElementById('collegiats-list').innerHTML =
+            '<div style="text-align:center;padding:30px;color:var(--text-light);">Error carregant la llista.</div>';
+    }
+}
+
+function renderCollegiatsList(collegiats) {
+    const container = document.getElementById('collegiats-list');
+    const count     = document.getElementById('collegiats-count');
+    count.textContent = `${collegiats.length} registre${collegiats.length !== 1 ? 's' : ''}`;
+
+    if (collegiats.length === 0) {
+        container.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-light);">Cap número de col·legiat autoritzat encara. Utilitza el formulari per afegir-ne.</div>';
+        return;
+    }
+
+    const rows = collegiats.map(c => {
+        const estatBadge = c.teCompte
+            ? `<span style="background:#eafaf1;color:#1e8449;padding:3px 10px;border-radius:12px;font-size:.78rem;font-weight:600;"><i class="fas fa-check-circle"></i> Registrat</span>`
+            : `<span style="background:#fef9e7;color:#9a6600;padding:3px 10px;border-radius:12px;font-size:.78rem;font-weight:600;"><i class="fas fa-clock"></i> Pendent</span>`;
+
+        const nomMetge = c.metge ? `<span style="color:var(--text);font-size:.88rem;">${c.metge.nom}</span>` : `<span style="color:var(--text-light);font-size:.85rem;font-style:italic;">Sense compte creat</span>`;
+
+        const dataStr = new Date(c.createdAt).toLocaleDateString('ca-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
+
+        const btnEliminar = !c.teCompte
+            ? `<button class="btn btn-sm" style="background:#fdedec;color:#c0392b;border:1px solid #f5b7b1;padding:4px 10px;font-size:.78rem;" onclick="deleteCollegiat('${c.numCollegiat}')"><i class="fas fa-trash-alt"></i> Eliminar</button>`
+            : '';
+
+        return `
+            <tr style="border-bottom:1px solid #f0f3f7;">
+                <td style="padding:14px 20px;font-weight:600;font-family:monospace;font-size:.95rem;letter-spacing:.5px;">${c.numCollegiat}</td>
+                <td style="padding:14px 20px;">${nomMetge}</td>
+                <td style="padding:14px 20px;">${estatBadge}</td>
+                <td style="padding:14px 20px;color:var(--text-light);font-size:.82rem;">${dataStr}</td>
+                <td style="padding:14px 20px;text-align:right;">${btnEliminar}</td>
+            </tr>
+        `;
+    }).join('');
+
+    container.innerHTML = `
+        <table style="width:100%;border-collapse:collapse;">
+            <thead>
+                <tr style="background:#f8fafc;border-bottom:2px solid #e8eef5;">
+                    <th style="padding:12px 20px;text-align:left;font-size:.8rem;font-weight:600;color:var(--text-light);text-transform:uppercase;letter-spacing:.5px;">Nº Col·legiat</th>
+                    <th style="padding:12px 20px;text-align:left;font-size:.8rem;font-weight:600;color:var(--text-light);text-transform:uppercase;letter-spacing:.5px;">Metge</th>
+                    <th style="padding:12px 20px;text-align:left;font-size:.8rem;font-weight:600;color:var(--text-light);text-transform:uppercase;letter-spacing:.5px;">Estat</th>
+                    <th style="padding:12px 20px;text-align:left;font-size:.8rem;font-weight:600;color:var(--text-light);text-transform:uppercase;letter-spacing:.5px;">Afegit</th>
+                    <th style="padding:12px 20px;"></th>
+                </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+        </table>
+    `;
+}
+
+async function deleteCollegiat(numCollegiat) {
+    if (!confirm(`Segur que vols eliminar l'autorització del col·legiat ${numCollegiat}?`)) return;
+    try {
+        const res = await fetch(`${API}/collegiats/${encodeURIComponent(numCollegiat)}`, {
+            method: 'DELETE',
+            headers: getAuthHeaders()
+        });
+        const data = await res.json();
+        if (!res.ok) {
+            showToast(data.error || 'Error en eliminar', 'error');
+            return;
+        }
+        showToast('Col·legiat eliminat correctament');
+        loadCollegiats();
+    } catch {
+        showToast('Error de connexió', 'error');
+    }
+}
+
+function showCollegiatAlert(msg, type) {
+    const el = document.getElementById('collegiat-alert');
+    el.style.display = 'block';
+    el.style.background  = type === 'error' ? '#fdedec' : '#eafaf1';
+    el.style.color       = type === 'error' ? '#c0392b' : '#1e8449';
+    el.style.border      = type === 'error' ? '1px solid #f5b7b1' : '1px solid #a9dfbf';
+    el.innerHTML = `<i class="fas ${type === 'error' ? 'fa-exclamation-circle' : 'fa-check-circle'}"></i> ${msg}`;
+    setTimeout(() => { el.style.display = 'none'; }, 4000);
+}
+
+document.getElementById('btn-add-collegiat').addEventListener('click', async function () {
+    const num = document.getElementById('input-num-collegiat').value.trim();
+    if (!num) { showCollegiatAlert('Introdueix un número de col·legiat.', 'error'); return; }
+
+    this.disabled = true;
+    try {
+        const res  = await fetch(`${API}/collegiats`, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: JSON.stringify({ numCollegiat: num })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+            showCollegiatAlert(data.error || 'Error desconegut', 'error');
+        } else {
+            showCollegiatAlert(`Número ${num} autoritzat correctament.`, 'success');
+            document.getElementById('input-num-collegiat').value = '';
+            loadCollegiats();
+        }
+    } catch {
+        showCollegiatAlert('Error de connexió amb el servidor.', 'error');
+    } finally {
+        this.disabled = false;
+    }
+});
+
+document.getElementById('input-num-collegiat').addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') document.getElementById('btn-add-collegiat').click();
+});
+
+// Carregar col·legiats quan es navega a la secció
+document.querySelectorAll('.nav-link').forEach(link => {
+    if (link.dataset.section === 'collegiats') {
+        link.addEventListener('click', loadCollegiats);
+    }
+});

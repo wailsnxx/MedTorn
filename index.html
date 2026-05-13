@@ -28,6 +28,7 @@
                 <a href="#" class="nav-link active" data-section="dashboard"><i class="fas fa-th-large"></i> Dashboard</a>
                 <a href="#" class="nav-link" data-section="metges"><i class="fas fa-user-md"></i> Metges</a>
                 <a href="#" class="nav-link" data-section="torns"><i class="fas fa-calendar-alt"></i> Quadre de Torns</a>
+                <a href="#" class="nav-link" data-section="collegiats"><i class="fas fa-id-card"></i> Col·legiats</a>
                 <a href="#" class="nav-link" data-section="suggeriments"><i class="fas fa-magic"></i> Suggeriments</a>
             </nav>
             <div class="header-actions">
@@ -253,6 +254,50 @@
                 <span class="legend-item"><span class="legend-dot guardia"></span> Guàrdia (G)</span>
                 <span class="legend-item"><span class="legend-dot lliure"></span> Lliure (L)</span>
                 <span class="legend-item"><span class="legend-dot baixa"></span> Baixa (B)</span>
+            </div>
+        </section>
+
+        <!-- ===== SECTION: COL·LEGIATS ===== -->
+        <section id="section-collegiats" class="section">
+            <div class="section-header">
+                <h1>Gestió de Col·legiats Autoritzats</h1>
+            </div>
+
+            <!-- Formulari per afegir -->
+            <div class="card" style="margin-bottom:20px;">
+                <div class="card-header">
+                    <h2><i class="fas fa-plus-circle"></i> Autoritzar número de col·legiat</h2>
+                </div>
+                <div class="card-body">
+                    <p style="font-size:.85rem;color:var(--text-light);margin-bottom:14px;">
+                        Afegeix aquí el número de col·legiat d'un metge perquè pugui crear el seu compte. Cada número només pot estar associat a un únic metge.
+                    </p>
+                    <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;">
+                        <div class="filter-group" style="flex:1;min-width:200px;margin:0;">
+                            <label for="input-num-collegiat">Número de col·legiat</label>
+                            <input type="text" id="input-num-collegiat" placeholder="Ex: 080012345" style="width:100%;padding:10px 12px;border:1.5px solid #d5e8f7;border-radius:8px;font-size:.95rem;box-sizing:border-box;font-family:inherit;">
+                        </div>
+                        <button class="btn btn-primary" id="btn-add-collegiat" style="height:42px;white-space:nowrap;margin-top:20px;">
+                            <i class="fas fa-plus"></i> Autoritzar
+                        </button>
+                    </div>
+                    <div id="collegiat-alert" style="display:none;margin-top:12px;padding:10px 14px;border-radius:8px;font-size:.85rem;"></div>
+                </div>
+            </div>
+
+            <!-- Llista de col·legiats autoritzats -->
+            <div class="card">
+                <div class="card-header">
+                    <h2><i class="fas fa-list-ul"></i> Col·legiats autoritzats</h2>
+                    <span id="collegiats-count" style="font-size:.85rem;color:var(--text-light);margin-left:auto;">—</span>
+                </div>
+                <div class="card-body" style="padding:0;">
+                    <div id="collegiats-list" style="min-height:80px;">
+                        <div style="text-align:center;padding:40px;color:var(--text-light);">
+                            <i class="fas fa-spinner fa-spin"></i> Carregant...
+                        </div>
+                    </div>
+                </div>
             </div>
         </section>
 

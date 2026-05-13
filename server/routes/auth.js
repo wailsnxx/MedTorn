@@ -5,8 +5,9 @@ const express  = require('express');
 const router   = express.Router();
 const jwt      = require('jsonwebtoken');
 const mongoose = require('mongoose');
-const Usuari   = require('../models/Usuari');
-const Metge    = require('../models/Metge');
+const Usuari               = require('../models/Usuari');
+const Metge                = require('../models/Metge');
+const CollegiatAutoritzat  = require('../models/CollegiatAutoritzat');
 
 const JWT_SECRET  = process.env.JWT_SECRET || 'medtorn_dev_secret_canvia_en_produccio';
 const JWT_EXPIRES = '7d';
@@ -67,20 +68,34 @@ router.post('/register', async (req, res) => {
       return res.status(409).json({ error: 'Ja existeix un compte amb aquest correu electrònic' });
     }
 
-    // Si és METGE, verificar que el numCollegiat existeix i està disponible
+    // Si és METGE, verificar que el numCollegiat ha estat autoritzat pel cap de torn
     let metgeDoc = null;
     if (rol === 'METGE') {
       if (!numCollegiat || !numCollegiat.trim()) {
         return res.status(400).json({ error: 'Cal introduir el número de col·legiat' });
       }
-      metgeDoc = await Metge.findOne({ numCollegiat: numCollegiat.trim() });
-      if (!metgeDoc) {
-        return res.status(404).json({ error: 'Identificador de col·legiat no trobat' });
+      const num = numCollegiat.trim();
+
+      // 1. Comprovar que el cap de torn ha autoritzat prèviament aquest número
+      const autoritzat = await CollegiatAutoritzat.findOne({ numCollegiat: num });
+      if (!autoritzat) {
+        return res.status(404).json({ error: 'Número de col·legiat no autoritzat. Contacta amb el cap de torn perquè t\'autoritzi.' });
       }
-      // Comprovar que el metge no té ja un compte
-      const metgePres = await Usuari.findOne({ metge_id: metgeDoc._id });
-      if (metgePres) {
-        return res.status(409).json({ error: 'Aquest perfil mèdic ja té un compte associat' });
+
+      // 2. Buscar si ja existeix un perfil de metge amb aquest número
+      metgeDoc = await Metge.findOne({ numCollegiat: num });
+      if (metgeDoc) {
+        // Comprovar que el metge no té ja un compte
+        const metgePres = await Usuari.findOne({ metge_id: metgeDoc._id });
+        if (metgePres) {
+          return res.status(409).json({ error: 'Aquest perfil mèdic ja té un compte associat' });
+        }
+      } else {
+        // Crear un perfil de metge mínim (el cap de torn podrà completar-lo després)
+        metgeDoc = await Metge.create({
+          nom:          nom.trim(),
+          numCollegiat: num
+        });
       }
     }
 
