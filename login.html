@@ -327,6 +327,7 @@
         </div>
 
         <!-- ── LOGIN ── -->
+        <!-- Formulari d'accés: valida credencials i obre el portal segons el rol -->
         <div id="section-login" class="form-section active">
             <h3>Benvingut/da</h3>
             <p class="form-subtitle">Introdueix les teves credencials per accedir al sistema</p>
@@ -368,6 +369,7 @@
         </div>
 
         <!-- ── REGISTER ── -->
+        <!-- Formulari d'alta: crea usuari nou i vincula metge per número de col·legiat -->
         <div id="section-register" class="form-section">
             <h3>Crea un compte</h3>
             <p class="form-subtitle">Omple el formulari per registrar-te al sistema</p>
@@ -449,6 +451,7 @@
 
 <script>
 // ── Tabs ──────────────────────────────────────────────────────
+// Canvia entre el formulari de login i el de registre.
 function showTab(tab) {
     document.getElementById('section-login').classList.toggle('active', tab === 'login');
     document.getElementById('section-register').classList.toggle('active', tab === 'register');
@@ -457,6 +460,7 @@ function showTab(tab) {
 }
 
 // ── Toggle password visibility ────────────────────────────────
+// Mostra o oculta la contrasenya als formularis.
 function togglePw(inputId, iconId) {
     const inp  = document.getElementById(inputId);
     const icon = document.getElementById(iconId);
@@ -469,6 +473,7 @@ document.getElementById('toggle-login-pw').addEventListener('click', () => toggl
 document.getElementById('toggle-reg-pw').addEventListener('click',   () => togglePw('reg-password',   'toggle-reg-pw'));
 
 // ── Mostrar/amagar selector de metge ─────────────────────────
+// Activa el camp de col·legiat només quan el rol és METGE.
 document.querySelectorAll('input[name="reg-rol"]').forEach(function(radio) {
     radio.addEventListener('change', function () {
         var wrap = document.getElementById('metge-selector-wrap');
@@ -496,6 +501,7 @@ function handleToken(token) {
 }
 
 // ── LOGIN ──────────────────────────────────────────────────────
+// Envia email/contrasenya a backend i desa el JWT si és correcte.
 document.getElementById('btn-login').addEventListener('click', async function () {
     hideAlert('login-alert');
     var email    = document.getElementById('login-email').value.trim();
@@ -535,6 +541,7 @@ document.getElementById('login-password').addEventListener('keydown', function (
 });
 
 // ── REGISTER ──────────────────────────────────────────────────
+// Valida camps, registra usuari i inicia sessió automàticament.
 document.getElementById('btn-register').addEventListener('click', async function () {
     hideAlert('reg-alert');
     var nom      = document.getElementById('reg-nom').value.trim();
