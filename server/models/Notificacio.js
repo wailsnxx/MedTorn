@@ -25,7 +25,8 @@ const notificacioSchema = new mongoose.Schema({
   descripcio:{ type: String, required: true },
   dataHora:  { type: Date, default: Date.now },
   llegida:   { type: Boolean, default: false },
-  metge_id:  { type: mongoose.Schema.Types.ObjectId, ref: 'Metge', required: true }
+  metge_id:  { type: mongoose.Schema.Types.ObjectId, ref: 'Metge', required: false },
+  per_cap_de_torn: { type: Boolean, default: false }
 }, {
   collection: 'notificacions',
   timestamps: true,

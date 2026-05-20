@@ -40,6 +40,7 @@ const LANGUAGES = ["Català", "Castellà", "Anglès", "Francès", "Àrab", "Xin�
 let doctors = [];
 let currentWeekOffset = 0;
 let liveRefreshTimer = null;
+let NOTIFICATIONS = [];
 
 // ── Carrega tots els metges des del backend ──────────────────
 async function loadDoctors() {
@@ -353,7 +354,13 @@ function formatDateShort(date) {
     return date.toLocaleDateString('ca-ES', { day: 'numeric', month: 'short' });
 }
 
-function renderShiftTable() {
+function formatDateISO(date) {
+    return date.getFullYear() + '-' +
+        String(date.getMonth() + 1).padStart(2, '0') + '-' +
+        String(date.getDate()).padStart(2, '0');
+}
+
+async function renderShiftTable() {
     const tbody = document.getElementById('shift-table-body');
     const weekLabel = document.getElementById('week-label');
     const dates = getWeekDates(currentWeekOffset);
@@ -367,8 +374,32 @@ function renderShiftTable() {
         thCells[i].innerHTML = `${dayNames[i - 1]}<br><small>${formatDateShort(dates[i - 1])}</small>`;
     }
 
+    // Fetch shifts for the selected week from the API
+    var weekShifts = [];
+    try {
+        var dataInici = formatDateISO(dates[0]);
+        var dataFinal = formatDateISO(dates[6]);
+        var res = await fetch(`${API}/torns?dataInici=${dataInici}&dataFinal=${dataFinal}`);
+        if (res.ok) weekShifts = await res.json();
+    } catch (err) {
+        console.error('Error carregant torns de la setmana:', err);
+    }
+
+    var shiftLookup = {};
+    weekShifts.forEach(function (s) {
+        var mid = String(s.metge_id && s.metge_id._id ? s.metge_id._id : s.metge_id);
+        var dateKey = (s.data || '').substring(0, 10);
+        var letter = s.codi || 'L';
+        shiftLookup[mid + '|' + dateKey] = letter;
+    });
+
     tbody.innerHTML = doctors.map(d => {
-        const shiftCells = d.shifts.map(s => `<td><span class="shift-cell ${s}">${s}</span></td>`).join('');
+        var doctorId = String(d.id);
+        var shiftCells = dates.map(function (date) {
+            var key = doctorId + '|' + formatDateISO(date);
+            var s = shiftLookup[key] || 'L';
+            return `<td><span class="shift-cell ${s}">${s}</span></td>`;
+        }).join('');
         return `
             <tr>
                 <td>
@@ -444,8 +475,8 @@ document.getElementById('btn-suggest').addEventListener('click', () => {
                     <span class="match-text">${pct}%</span>
                 </div>
                 <div class="sug-actions">
-                    <button class="btn btn-primary btn-sm" onclick="showToast('Notificació enviada a ${d.name}')"><i class="fas fa-paper-plane"></i></button>
-                    <button class="btn btn-success btn-sm" onclick="showToast('${d.name} assignat/da al cas')"><i class="fas fa-user-plus"></i></button>
+                    <button class="btn btn-primary btn-sm" onclick="openNotifModal('${d.id}')"><i class="fas fa-paper-plane"></i></button>
+                    <button class="btn btn-success btn-sm" onclick="openCasModal('${d.id}')"><i class="fas fa-user-plus"></i></button>
                 </div>
             </div>
         `;
@@ -651,6 +682,87 @@ function formatStatus(status) {
     return map[status] || status;
 }
 
+// ========== NOTIFICATIONS ==========
+async function loadNotifications() {
+    try {
+        const res = await fetch(`${API}/notificacions?per_cap_de_torn=true`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        NOTIFICATIONS = await res.json();
+    } catch (err) {
+        console.error('Error carregant notificacions:', err);
+        NOTIFICATIONS = [];
+    }
+}
+
+function renderNotifications() {
+    const container = document.getElementById('notif-list');
+    const badge = document.getElementById('notif-badge');
+    if (!container) return;
+
+    const unreadCount = NOTIFICATIONS.filter(n => n.unread).length;
+    if (badge) {
+        badge.textContent = unreadCount;
+        badge.style.display = unreadCount > 0 ? '' : 'none';
+    }
+
+    if (NOTIFICATIONS.length === 0) {
+        container.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-muted);">Cap notificació</div>';
+        return;
+    }
+
+    container.innerHTML = NOTIFICATIONS.map(n => `
+        <div class="notif-item ${n.unread ? 'unread' : ''}">
+            <div class="notif-icon ${n.type}"><i class="fas ${n.icon}"></i></div>
+            <div class="notif-body">
+                <div class="notif-title">${n.title}</div>
+                <div class="notif-desc">${n.desc}</div>
+                <div class="notif-time">${n.time}</div>
+            </div>
+        </div>
+    `).join('');
+}
+
+const notifBtn = document.getElementById('notif-btn');
+if (notifBtn) {
+    notifBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        document.getElementById('notif-panel').classList.toggle('open');
+    });
+
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.notif-panel') && !e.target.closest('.notification-btn')) {
+            document.getElementById('notif-panel').classList.remove('open');
+        }
+    });
+
+    document.getElementById('notif-mark-all').addEventListener('click', async () => {
+        try {
+            await fetch(`${API}/notificacions/llegir-totes/cap_de_torn`, { method: 'PATCH' });
+        } catch (e) { /* silenci */ }
+        NOTIFICATIONS.forEach(n => n.unread = false);
+        renderNotifications();
+        showToast('Totes les notificacions marcades com a llegides');
+    });
+}
+
+// ========== SUGGESTION MODALS HOOKS ==========
+window.openNotifModal = function(id) {
+    const d = doctors.find(doc => String(doc.id) === String(id));
+    if (!d) return;
+    activeDoctorId = d.id;
+    document.getElementById('modal-notif-doctor-name').textContent = d.name;
+    document.getElementById('modal-notif-overlay').classList.add('open');
+};
+
+window.openCasModal = function(id) {
+    const d = doctors.find(doc => String(doc.id) === String(id));
+    if (!d) return;
+    activeDoctorId = d.id;
+    document.getElementById('modal-cas-doctor-name').textContent = d.name;
+    document.getElementById('modal-cas-overlay').classList.add('open');
+    document.getElementById('cas-hora').value = new Date().toTimeString().slice(0, 5);
+};
+
 // ========== INIT ==========
 async function init() {
     // Actualitzar capçalera amb el nom de l'usuari autenticat
@@ -666,13 +778,17 @@ async function init() {
     populateFilters();
 
     const refreshAll = async () => {
-        await loadDoctors();
+        await Promise.all([
+            loadDoctors(),
+            loadNotifications()
+        ]);
         updateDashboardStats();
         renderShiftOverview();
         renderAlerts();
         renderQuickResults();
         renderDoctorsGrid();
         renderShiftTable();
+        renderNotifications();
     };
 
     await refreshAll();

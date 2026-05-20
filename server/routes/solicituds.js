@@ -4,6 +4,7 @@ const router   = express.Router();
 const mongoose = require('mongoose');
 const Solicitud = require('../models/Solicitud');
 const Metge     = require('../models/Metge');
+const Notificacio = require('../models/Notificacio');
 
 // GET /api/solicituds — Sol·licituds per metge_id
 router.get('/', async (req, res) => {
@@ -106,7 +107,7 @@ router.get('/entrants/:metge_id', async (req, res) => {
 // POST /api/solicituds — Crear nova sol·licitud
 router.post('/', async (req, res) => {
   try {
-    const { tipus, dataInici, dataFinal, tornAfectat, motiu, metge_solicitant_id } = req.body;
+    const { tipus, dataInici, dataFinal, tornAfectat, motiu, metge_solicitant_id, metge_receptor_id, torn_ofert_id, torn_demanat_id } = req.body;
 
     if (!tipus || !tornAfectat || !metge_solicitant_id) {
       return res.status(400).json({ error: 'Falten camps obligatoris: tipus, tornAfectat, metge_solicitant_id' });
@@ -131,7 +132,20 @@ router.post('/', async (req, res) => {
       tornAfectat,
       motiu:       motiu || '',
       estat:       'PENDENT',
-      metge_solicitant_id
+      metge_solicitant_id,
+      metge_receptor_id: metge_receptor_id || undefined,
+      torn_ofert_id:     torn_ofert_id || undefined,
+      torn_demanat_id:   torn_demanat_id || undefined
+    });
+
+    const metgeData = await Metge.findById(metge_solicitant_id).select('nom');
+    const nomSol = metgeData ? metgeData.nom : 'Un metge';
+    
+    await Notificacio.create({
+      tipus: 'AVIS',
+      titol: 'Nova sol·licitud',
+      descripcio: `${nomSol} ha enviat una nova sol·licitud de ${tipus}.`,
+      per_cap_de_torn: true
     });
 
     res.status(201).json({ ok: true, id: sol._id });
@@ -157,6 +171,17 @@ router.patch('/:id/estat', async (req, res) => {
       { new: true }
     );
     if (!sol) return res.status(404).json({ error: 'Sol·licitud no trobada' });
+    
+    if (estat === 'APROVADA' || estat === 'REBUTJADA') {
+      const isOk = estat === 'APROVADA';
+      await Notificacio.create({
+        metge_id: sol.metge_solicitant_id,
+        tipus: isOk ? 'EXITO' : 'PERILL',
+        titol: `Sol·licitud ${estat.toLowerCase()}`,
+        descripcio: `La teva sol·licitud de ${sol.tipus} ha estat ${estat.toLowerCase()}.`
+      });
+    }
+
     res.json({ ok: true, estat: sol.estat });
   } catch (err) {
     console.error('PATCH /api/solicituds/:id/estat error:', err);

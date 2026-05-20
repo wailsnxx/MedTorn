@@ -9,6 +9,7 @@ const Cas       = require('./models/Cas');
 const Solicitud = require('./models/Solicitud');
 const Notificacio = require('./models/Notificacio');
 const Usuari    = require('./models/Usuari');
+const CollegiatAutoritzat = require('./models/CollegiatAutoritzat');
 
 // ── Dades mestres ────────────────────────────────────────────
 const SPECIALTIES = [
@@ -80,7 +81,8 @@ async function seed() {
     Cas.deleteMany({}),
     Solicitud.deleteMany({}),
     Notificacio.deleteMany({}),
-    Usuari.deleteMany({})
+    Usuari.deleteMany({}),
+    CollegiatAutoritzat.deleteMany({})
   ]);
 
   // ── Metges ──
@@ -239,27 +241,50 @@ async function seed() {
   console.log('  ID del Dr. Jordi Puig:', jordiPuig._id.toString());
   console.log('══════════════════════════════════════════\n');
 
-  // ── Usuaris per defecte ──
-  console.log('👤  Inserint usuaris per defecte...');
-  await Usuari.create([
+  // ── Usuaris per defecte i per a tots els metges ──
+  console.log('👤  Inserint usuaris...');
+  const usersToInsert = [
     {
       nom:      'Anna Puig',
       email:    'admin@medtorn.cat',
       password: 'Admin1234!',
       rol:      'CAP_TORN',
       metge_id: null
-    },
-    {
-      nom:      'Dr. Jordi Puig Fernández',
-      email:    'jordi.puig@medtorn.cat',
+    }
+  ];
+
+  metges.forEach((m, index) => {
+    let email = `metge${index + 1}@medtorn.cat`;
+    if (m._id === jordiPuig._id) {
+      email = 'jordi.puig@medtorn.cat';
+    }
+    usersToInsert.push({
+      nom:      m.nom,
+      email:    email,
       password: 'Metge1234!',
       rol:      'METGE',
-      metge_id: jordiPuig._id
-    }
-  ]);
-  console.log('   ✔ 2 usuaris inserits');
+      metge_id: m._id
+    });
+  });
+
+  await Usuari.create(usersToInsert);
+  console.log(`   ✔ ${usersToInsert.length} usuaris inserits`);
   console.log('   Cap de Torn → admin@medtorn.cat / Admin1234!');
-  console.log('   Metge       → jordi.puig@medtorn.cat / Metge1234!\n');
+  console.log('   Metge (Dr. Puig) → jordi.puig@medtorn.cat / Metge1234!\n');
+
+  // ── Col·legiats autoritzats ──
+  console.log('🪪  Inserint col·legiats autoritzats...');
+  const collegiatsData = metges.map(m => ({ numCollegiat: m.numCollegiat }));
+  
+  // Afegim 3 col·legiats "pendents" extres per poder provar el flux de registre
+  collegiatsData.push(
+    { numCollegiat: '08555' },
+    { numCollegiat: '08666' },
+    { numCollegiat: '08777' }
+  );
+
+  await CollegiatAutoritzat.insertMany(collegiatsData);
+  console.log(`   ✔ ${collegiatsData.length} col·legiats autoritzats inserits`);
 
   await mongoose.disconnect();
 }

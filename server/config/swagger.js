@@ -170,10 +170,74 @@ const spec = {
         }
       },
 
+      // ── Inputs ────────────────────────────────────────────────────────────
+      TornInput: {
+        type: 'object',
+        required: ['metge_id', 'data', 'tipusTorn', 'horaInici', 'horaFinal', 'unitat'],
+        properties: {
+          metge_id:  { type: 'string', example: '664a1b2c3d4e5f6a7b8c9d0e' },
+          data:      { type: 'string', format: 'date', example: '2026-04-22' },
+          tipusTorn: { type: 'string', enum: ['MATI', 'TARDA', 'NIT', 'GUARDIA', 'LLIURE', 'BAIXA'], example: 'MATI' },
+          horaInici: { type: 'string', example: '07:00' },
+          horaFinal: { type: 'string', example: '15:00' },
+          unitat:    { type: 'string', example: 'UCI' }
+        }
+      },
+
+      CasInput: {
+        type: 'object',
+        required: ['metge_id', 'titol', 'pacient', 'sala', 'prioritat', 'hora'],
+        properties: {
+          metge_id:   { type: 'string', example: '664a1b2c3d4e5f6a7b8c9d0e' },
+          titol:      { type: 'string', example: 'Revisió post-quirúrgica' },
+          pacient:    { type: 'string', example: 'Pacient #4521' },
+          sala:       { type: 'string', example: 'Hab. 215' },
+          prioritat:  { type: 'string', enum: ['ALTA', 'MITJA', 'BAIXA'], example: 'MITJA' },
+          hora:       { type: 'string', example: '09:30' },
+          descripcio: { type: 'string', example: 'Control de constants' }
+        }
+      },
+
+      NotificacioInput: {
+        type: 'object',
+        required: ['metge_id', 'titol', 'descripcio', 'tipus'],
+        properties: {
+          metge_id:   { type: 'string', example: '664a1b2c3d4e5f6a7b8c9d0e' },
+          titol:      { type: 'string', example: 'Torn assignat' },
+          descripcio: { type: 'string', example: 'Se t\'ha assignat el torn de matí.' },
+          tipus:      { type: 'string', enum: ['INFO', 'AVIS', 'EXITO', 'PERILL'], example: 'INFO' }
+        }
+      },
+
+      CollegiatAutoritzat: {
+        type: 'object',
+        properties: {
+          id:           { type: 'string', example: '664a1b2c3d4e5f6a7b8c9d13' },
+          numCollegiat: { type: 'string', example: '080012345' },
+          createdAt:    { type: 'string', format: 'date-time' },
+          metge:        {
+            type: 'object', nullable: true,
+            properties: {
+              id:  { type: 'string' },
+              nom: { type: 'string', example: 'Dr. Jordi Puig Fernández' }
+            }
+          },
+          teCompte: { type: 'boolean', example: false }
+        }
+      },
+
       // ── Genèrics ───────────────────────────────────────────────────────────
       OkResponse: {
         type: 'object',
         properties: { ok: { type: 'boolean', example: true } }
+      },
+
+      OkResponseWithId: {
+        type: 'object',
+        properties: {
+          ok: { type: 'boolean', example: true },
+          id: { type: 'string', example: '664a1b2c3d4e5f6a7b8c9d0f' }
+        }
       },
 
       ErrorResponse: {
@@ -199,6 +263,18 @@ const spec = {
         name: 'id', in: 'path', required: true,
         schema: { type: 'string' },
         description: 'ObjectId MongoDB de la notificació'
+      },
+      tornIdPath: {
+        name: 'id', in: 'path', required: true,
+        schema: { type: 'string' },
+        description: 'ObjectId MongoDB del torn',
+        example: '664a1b2c3d4e5f6a7b8c9d0f'
+      },
+      numCollegiatPath: {
+        name: 'numCollegiat', in: 'path', required: true,
+        schema: { type: 'string' },
+        description: 'Número de col·legiat',
+        example: '080012345'
       }
     }
   },
@@ -211,6 +287,7 @@ const spec = {
     { name: 'Casos',        description: 'Casos clínics assignats' },
     { name: 'Sol·licituds', description: 'Sol·licituds de canvi, permuta i baixes' },
     { name: 'Notificacions', description: 'Notificacions per al metge' },
+    { name: 'Col·legiats',  description: 'Gestió de col·legiats autoritzats (cap de torn)' },
     { name: 'Sistema',      description: 'Health check i estat del servei' }
   ],
 
@@ -432,6 +509,55 @@ const spec = {
           400: { description: 'Paràmetre invàlid', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
           500: { description: 'Error intern', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
         }
+      },
+      post: {
+        tags: ['Torns'],
+        summary: 'Crear nou torn',
+        description: 'Crea un nou torn per a un metge.',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': { schema: { $ref: '#/components/schemas/TornInput' } }
+          }
+        },
+        responses: {
+          201: { description: 'Torn creat', content: { 'application/json': { schema: { $ref: '#/components/schemas/OkResponseWithId' } } } },
+          400: { description: 'Dades invàlides', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+          500: { description: 'Error intern', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
+        }
+      }
+    },
+
+    '/api/torns/{id}': {
+      put: {
+        tags: ['Torns'],
+        summary: 'Actualitzar un torn',
+        description: 'Actualitza un torn existent pel seu ID.',
+        parameters: [{ $ref: '#/components/parameters/tornIdPath' }],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': { schema: { $ref: '#/components/schemas/TornInput' } }
+          }
+        },
+        responses: {
+          200: { description: 'Torn actualitzat', content: { 'application/json': { schema: { $ref: '#/components/schemas/OkResponseWithId' } } } },
+          400: { description: 'Dades invàlides', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+          404: { description: 'Torn no trobat', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+          500: { description: 'Error intern', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
+        }
+      },
+      delete: {
+        tags: ['Torns'],
+        summary: 'Eliminar un torn',
+        description: 'Elimina un torn pel seu ID.',
+        parameters: [{ $ref: '#/components/parameters/tornIdPath' }],
+        responses: {
+          200: { description: 'Torn eliminat', content: { 'application/json': { schema: { $ref: '#/components/schemas/OkResponse' } } } },
+          400: { description: 'ID invàlid', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+          404: { description: 'Torn no trobat', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+          500: { description: 'Error intern', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
+        }
       }
     },
 
@@ -465,6 +591,22 @@ const spec = {
         responses: {
           200: { description: 'Llista de casos', content: { 'application/json': { schema: { type: 'array', items: { $ref: '#/components/schemas/Cas' } } } } },
           400: { description: 'metge_id invàlid', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+          500: { description: 'Error intern', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
+        }
+      },
+      post: {
+        tags: ['Casos'],
+        summary: 'Crear nou cas clínic',
+        description: 'Crea un nou cas assignat a un metge.',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': { schema: { $ref: '#/components/schemas/CasInput' } }
+          }
+        },
+        responses: {
+          201: { description: 'Cas creat', content: { 'application/json': { schema: { $ref: '#/components/schemas/OkResponseWithId' } } } },
+          400: { description: 'Dades invàlides', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
           500: { description: 'Error intern', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
         }
       }
@@ -562,6 +704,22 @@ const spec = {
           400: { description: 'Paràmetre metge_id obligatori o invàlid', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
           500: { description: 'Error intern', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
         }
+      },
+      post: {
+        tags: ['Notificacions'],
+        summary: 'Crear nova notificació',
+        description: 'Crea una nova notificació per a un metge.',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': { schema: { $ref: '#/components/schemas/NotificacioInput' } }
+          }
+        },
+        responses: {
+          201: { description: 'Notificació creada', content: { 'application/json': { schema: { $ref: '#/components/schemas/OkResponseWithId' } } } },
+          400: { description: 'Dades invàlides', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+          500: { description: 'Error intern', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
+        }
       }
     },
 
@@ -589,6 +747,77 @@ const spec = {
         responses: {
           200: { description: 'Totes marcades com a llegides', content: { 'application/json': { schema: { $ref: '#/components/schemas/OkResponse' } } } },
           400: { description: 'metge_id invàlid', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+          500: { description: 'Error intern', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
+        }
+      }
+    },
+
+    '/api/notificacions/llegir-totes/cap_de_torn': {
+      patch: {
+        tags: ['Notificacions'],
+        summary: 'Marcar totes les notificacions del cap de torn com a llegides',
+        description: 'Marca totes les notificacions amb per_cap_de_torn=true com a llegides.',
+        responses: {
+          200: { description: 'Totes marcades com a llegides', content: { 'application/json': { schema: { $ref: '#/components/schemas/OkResponse' } } } },
+          500: { description: 'Error intern', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
+        }
+      }
+    },
+
+    // ════════════════ COL·LEGIATS ════════════════════════════════════════════
+    '/api/collegiats': {
+      get: {
+        tags: ['Col·legiats'],
+        summary: 'Llista de col·legiats autoritzats',
+        description: 'Retorna tots els col·legiats autoritzats amb el seu estat. Requereix rol CAP_TORN.',
+        responses: {
+          200: { description: 'Llista de col·legiats', content: { 'application/json': { schema: { type: 'array', items: { $ref: '#/components/schemas/CollegiatAutoritzat' } } } } },
+          401: { description: 'No autenticat', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+          403: { description: 'Accés restringit al cap de torn', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+          500: { description: 'Error intern', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
+        }
+      },
+      post: {
+        tags: ['Col·legiats'],
+        summary: 'Afegir col·legiat autoritzat',
+        description: 'Afegeix un nou número de col·legiat a la llista autoritzada. Requereix rol CAP_TORN.',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['numCollegiat'],
+                properties: {
+                  numCollegiat: { type: 'string', example: '080099999' }
+                }
+              }
+            }
+          }
+        },
+        responses: {
+          201: { description: 'Col·legiat afegit', content: { 'application/json': { schema: { $ref: '#/components/schemas/CollegiatAutoritzat' } } } },
+          400: { description: 'Número de col·legiat obligatori', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+          401: { description: 'No autenticat', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+          403: { description: 'Accés restringit al cap de torn', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+          409: { description: 'Col·legiat ja autoritzat o amb compte actiu', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+          500: { description: 'Error intern', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
+        }
+      }
+    },
+
+    '/api/collegiats/{numCollegiat}': {
+      delete: {
+        tags: ['Col·legiats'],
+        summary: 'Eliminar col·legiat autoritzat',
+        description: 'Elimina un col·legiat de la llista autoritzada. No es pot eliminar si ja té un compte de metge actiu. Requereix rol CAP_TORN.',
+        parameters: [{ $ref: '#/components/parameters/numCollegiatPath' }],
+        responses: {
+          200: { description: 'Col·legiat eliminat', content: { 'application/json': { schema: { $ref: '#/components/schemas/OkResponse' } } } },
+          401: { description: 'No autenticat', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+          403: { description: 'Accés restringit al cap de torn', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+          404: { description: 'Col·legiat no trobat', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+          409: { description: 'No es pot eliminar: té compte actiu', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
           500: { description: 'Error intern', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
         }
       }

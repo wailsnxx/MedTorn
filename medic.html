@@ -40,9 +40,7 @@
                         <span class="user-role">Cardiologia</span>
                     </div>
                 </div>
-                <a href="index.html" class="btn btn-outline btn-sm switch-portal" title="Portal de Coordinació">
-                    <i class="fas fa-arrow-right-arrow-left"></i> Coordinació
-                </a>
+
                 <button class="btn btn-outline btn-sm" id="btn-logout" title="Tancar sessió" style="gap:6px;">
                     <i class="fas fa-sign-out-alt"></i> Sortir
                 </button>
@@ -223,15 +221,15 @@
                 <div class="card profile-hero">
                     <div class="profile-hero-bg"></div>
                     <div class="profile-hero-body">
-                        <img class="profile-avatar" src="https://ui-avatars.com/api/?name=Jordi+Puig&background=1a5276&color=fff&size=160&rounded=true&bold=true" alt="Dr. Jordi Puig">
+                        <img class="profile-avatar" id="profile-avatar" src="" alt="">
                         <div class="profile-main-info">
-                            <h2>Dr. Jordi Puig Fernández</h2>
-                            <p class="profile-specialty">Cardiologia — Cardiologia Intervencionista</p>
-                            <p class="profile-collegiat"><i class="fas fa-id-badge"></i> Nº Col·legiat: 080012345</p>
+                            <h2 id="profile-name">Carregant...</h2>
+                            <p class="profile-specialty" id="profile-specialty">Carregant...</p>
+                            <p class="profile-collegiat" id="profile-collegiat"><i class="fas fa-id-badge"></i> Nº Col·legiat: -</p>
                             <div class="profile-status-row">
-                                <span class="status-badge disponible">Disponible</span>
-                                <span class="profile-meta"><i class="fas fa-clock"></i> 14 anys d'experiència</span>
-                                <span class="profile-meta"><i class="fas fa-building"></i> Planta 2 — Cardiologia</span>
+                                <span class="status-badge disponible" id="profile-status">-</span>
+                                <span class="profile-meta" id="profile-experience"><i class="fas fa-clock"></i> -</span>
+                                <span class="profile-meta" id="profile-unit"><i class="fas fa-building"></i> -</span>
                             </div>
                         </div>
                     </div>
@@ -302,19 +300,19 @@
                         <div class="card-body">
                             <div class="profile-stats">
                                 <div class="profile-stat">
-                                    <span class="profile-stat-num">18</span>
+                                    <span class="profile-stat-num" id="stat-torns">0</span>
                                     <span class="profile-stat-label">Torns realitzats</span>
                                 </div>
                                 <div class="profile-stat">
-                                    <span class="profile-stat-num">3</span>
+                                    <span class="profile-stat-num" id="stat-guardies">0</span>
                                     <span class="profile-stat-label">Guàrdies</span>
                                 </div>
                                 <div class="profile-stat">
-                                    <span class="profile-stat-num">42</span>
-                                    <span class="profile-stat-label">Pacients atesos</span>
+                                    <span class="profile-stat-num" id="stat-pacients">0</span>
+                                    <span class="profile-stat-label">Casos atesos</span>
                                 </div>
                                 <div class="profile-stat">
-                                    <span class="profile-stat-num">7</span>
+                                    <span class="profile-stat-num" id="stat-lliures">0</span>
                                     <span class="profile-stat-label">Dies lliures</span>
                                 </div>
                             </div>

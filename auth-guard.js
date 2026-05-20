@@ -13,7 +13,13 @@
     // Decode del payload JWT (sense verificar signatura — la verificació és al servidor)
     var parts = token.split('.');
     if (parts.length !== 3) throw new Error('token malformat');
-    var payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
+    var base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+    var pad = (4 - base64.length % 4) % 4;
+    if (pad > 0) base64 += "===".substring(0, pad);
+    var jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+    }).join(''));
+    var payload = JSON.parse(jsonPayload);
 
     // Comprovar expiració
     if (payload.exp && Math.floor(Date.now() / 1000) > payload.exp) {

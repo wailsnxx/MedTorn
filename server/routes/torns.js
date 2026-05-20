@@ -92,4 +92,48 @@ router.post('/', async (req, res) => {
   }
 });
 
+// PUT /api/torns/:id — Actualitzar un torn existent
+router.put('/:id', async (req, res) => {
+  try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ error: 'ID de torn invàlid' });
+    }
+    const { metge_id, data, tipusTorn, horaInici, horaFinal, unitat } = req.body;
+    if (!metge_id || !data || !tipusTorn || !horaInici || !horaFinal || !unitat) {
+      return res.status(400).json({ error: 'Falten camps: metge_id, data, tipusTorn, horaInici, horaFinal, unitat' });
+    }
+    if (!mongoose.Types.ObjectId.isValid(metge_id)) {
+      return res.status(400).json({ error: 'metge_id invàlid' });
+    }
+    if (!['MATI', 'TARDA', 'NIT', 'GUARDIA', 'LLIURE', 'BAIXA'].includes(tipusTorn)) {
+      return res.status(400).json({ error: 'tipusTorn invàlid' });
+    }
+    const torn = await Torn.findByIdAndUpdate(
+      req.params.id,
+      { metge_id, data: new Date(data), tipusTorn, horaInici, horaFinal, unitat },
+      { new: true }
+    );
+    if (!torn) return res.status(404).json({ error: 'Torn no trobat' });
+    res.json({ ok: true, id: torn._id });
+  } catch (err) {
+    console.error('PUT /api/torns/:id error:', err);
+    res.status(500).json({ error: 'Error intern del servidor' });
+  }
+});
+
+// DELETE /api/torns/:id — Eliminar un torn
+router.delete('/:id', async (req, res) => {
+  try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ error: 'ID de torn invàlid' });
+    }
+    const torn = await Torn.findByIdAndDelete(req.params.id);
+    if (!torn) return res.status(404).json({ error: 'Torn no trobat' });
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('DELETE /api/torns/:id error:', err);
+    res.status(500).json({ error: 'Error intern del servidor' });
+  }
+});
+
 module.exports = router;

@@ -7,13 +7,20 @@ const Notificacio = require('../models/Notificacio');
 // GET /api/notificacions?metge_id=xxx — Notificacions d'un metge
 router.get('/', async (req, res) => {
   try {
-    if (!req.query.metge_id) {
-      return res.status(400).json({ error: 'Paràmetre metge_id obligatori' });
+    if (!req.query.metge_id && req.query.per_cap_de_torn !== 'true') {
+      return res.status(400).json({ error: 'Paràmetre metge_id o per_cap_de_torn obligatori' });
     }
-    if (!mongoose.Types.ObjectId.isValid(req.query.metge_id)) {
-      return res.status(400).json({ error: 'metge_id invàlid' });
+
+    let filter = {};
+    if (req.query.per_cap_de_torn === 'true') {
+      filter.per_cap_de_torn = true;
+    } else {
+      if (!mongoose.Types.ObjectId.isValid(req.query.metge_id)) {
+        return res.status(400).json({ error: 'metge_id invàlid' });
+      }
+      filter.metge_id = req.query.metge_id;
     }
-    const filter = { metge_id: req.query.metge_id };
+
     if (req.query.llegida !== undefined) filter.llegida = req.query.llegida === 'true';
 
     const notifs = await Notificacio.find(filter).sort({ dataHora: -1 }).lean();
@@ -51,17 +58,17 @@ router.get('/', async (req, res) => {
 // POST /api/notificacions — Crear nova notificació per a un metge
 router.post('/', async (req, res) => {
   try {
-    const { metge_id, titol, descripcio, tipus } = req.body;
-    if (!metge_id || !titol || !descripcio || !tipus) {
-      return res.status(400).json({ error: 'Falten camps: metge_id, titol, descripcio, tipus' });
+    const { metge_id, titol, descripcio, tipus, per_cap_de_torn } = req.body;
+    if ((!metge_id && !per_cap_de_torn) || !titol || !descripcio || !tipus) {
+      return res.status(400).json({ error: 'Falten camps obligatoris' });
     }
-    if (!mongoose.Types.ObjectId.isValid(metge_id)) {
+    if (metge_id && !mongoose.Types.ObjectId.isValid(metge_id)) {
       return res.status(400).json({ error: 'metge_id invàlid' });
     }
     if (!['INFO', 'AVIS', 'EXITO', 'PERILL'].includes(tipus)) {
       return res.status(400).json({ error: 'tipus invàlid' });
     }
-    const notif = await Notificacio.create({ metge_id, titol, descripcio, tipus });
+    const notif = await Notificacio.create({ metge_id: metge_id || null, titol, descripcio, tipus, per_cap_de_torn: !!per_cap_de_torn });
     res.status(201).json({ ok: true, id: notif._id });
   } catch (err) {
     console.error('POST /api/notificacions error:', err);
@@ -80,6 +87,17 @@ router.patch('/:id/llegida', async (req, res) => {
     res.json({ ok: true });
   } catch (err) {
     console.error('PATCH /api/notificacions/:id/llegida error:', err);
+    res.status(500).json({ error: 'Error intern del servidor' });
+  }
+});
+
+// PATCH /api/notificacions/llegir-totes/cap_de_torn — Marcar totes del cap de torn com a llegides
+router.patch('/llegir-totes/cap_de_torn', async (req, res) => {
+  try {
+    await Notificacio.updateMany({ per_cap_de_torn: true, llegida: false }, { $set: { llegida: true } });
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('PATCH /api/notificacions/llegir-totes/cap_de_torn error:', err);
     res.status(500).json({ error: 'Error intern del servidor' });
   }
 });

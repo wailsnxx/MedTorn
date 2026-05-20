@@ -32,9 +32,9 @@
                 <a href="#" class="nav-link" data-section="suggeriments"><i class="fas fa-magic"></i> Suggeriments</a>
             </nav>
             <div class="header-actions">
-                <button class="btn-icon" title="Notificacions">
+                <button class="btn-icon notification-btn" id="notif-btn" title="Notificacions">
                     <i class="fas fa-bell"></i>
-                    <span class="badge">3</span>
+                    <span class="badge" id="notif-badge">0</span>
                 </button>
                 <div class="user-avatar">
                     <img id="header-avatar" src="https://ui-avatars.com/api/?name=Cap+Torn&background=1a5276&color=fff&size=36&rounded=true&bold=true" alt="User">
@@ -47,6 +47,17 @@
             </div>
         </div>
     </header>
+
+    <!-- ========== NOTIFICATIONS PANEL ========== -->
+    <div class="notif-panel" id="notif-panel">
+        <div class="notif-panel-header">
+            <h3>Notificacions del Sistema</h3>
+            <button class="btn-text" id="notif-mark-all">Marcar totes com a llegides</button>
+        </div>
+        <div class="notif-list" id="notif-list">
+            <!-- JS populated -->
+        </div>
+    </div>
 
     <!-- ========== MAIN CONTENT ========== -->
     <main class="main-content">

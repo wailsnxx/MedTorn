@@ -233,18 +233,53 @@ function renderHome() {
 
 function renderTimeline() {
     const container = document.getElementById('today-timeline');
+    if (!container) return;
     const hour = new Date().getHours();
+    
+    // Get today's shift
+    const now = new Date();
+    const dateKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const todayShift = MY_SHIFTS[dateKey];
+    
+    let events = [];
+    
+    if (todayShift === 'L' || todayShift === 'B') {
+        events.push({ time: "08:00", title: todayShift === 'B' ? "Baixa mèdica" : "Dia lliure", desc: "Fora de l'hospital", status: "done" });
+    } else if (todayShift) {
+        let startH = todayShift === 'M' ? 7 : (todayShift === 'T' ? 15 : (todayShift === 'N' ? 23 : 8));
+        let endH = todayShift === 'M' ? 15 : (todayShift === 'T' ? 23 : (todayShift === 'N' ? 7 : 8));
+        
+        events.push({ 
+            time: `${String(startH).padStart(2, '0')}:00`, 
+            title: `Inici de torn — ${todayShift === 'M' ? 'Matí' : (todayShift === 'T' ? 'Tarda' : 'Nit')}`, 
+            desc: "Check-in i revisió d'incidències", 
+            status: hour > startH ? "done" : (hour === startH ? "active" : "upcoming") 
+        });
+        
+        // Add cases as events
+        MY_CASES.forEach(c => {
+            let caseTime = c.time || "12:00";
+            const caseHour = parseInt(caseTime.split(':')[0]);
+            events.push({
+                time: caseTime,
+                title: c.title,
+                desc: `${c.patient} — ${c.room}`,
+                status: hour > caseHour ? "done" : (hour === caseHour ? "active" : "upcoming")
+            });
+        });
+        
+        events.push({ 
+            time: `${String(endH).padStart(2, '0')}:00`, 
+            title: "Fi de torn", 
+            desc: "Traspàs al següent torn", 
+            status: hour >= endH && todayShift !== 'N' ? "done" : "upcoming" 
+        });
+    } else {
+        events.push({ time: "-", title: "Sense torn assignat", desc: "", status: "upcoming" });
+    }
 
-    const events = [
-        { time: "07:00", title: "Inici de torn — Matí", desc: "Check-in i revisió d'incidències", status: hour >= 7 ? "done" : "upcoming" },
-        { time: "07:30", title: "Reunió d'equip", desc: "Briefing diari amb l'equip de Cardiologia", status: hour >= 8 ? "done" : (hour >= 7 ? "active" : "upcoming") },
-        { time: "09:30", title: "Cateterisme programat", desc: "Pacient #4521 — Hab. 215", status: hour >= 10 ? "done" : (hour >= 9 ? "active" : "upcoming") },
-        { time: "11:00", title: "Eco d'urgència", desc: "Pacient #4533 — Urgències Box 3", status: hour >= 12 ? "done" : (hour >= 11 ? "active" : "upcoming") },
-        { time: "12:30", title: "Consulta seguiment", desc: "Pacient #4487 — Consulta 8", status: hour >= 13 ? "done" : (hour >= 12 ? "active" : "upcoming") },
-        { time: "13:30", title: "Pausa dinar", desc: "", status: hour >= 14 ? "done" : (hour >= 13 ? "active" : "upcoming") },
-        { time: "14:30", title: "Documentació i informes", desc: "Actualització de l'historial clínic", status: hour >= 15 ? "done" : (hour >= 14 ? "active" : "upcoming") },
-        { time: "15:00", title: "Fi de torn", desc: "Traspàs al torn de tarda", status: hour >= 15 ? "done" : "upcoming" }
-    ];
+    // Sort events by time
+    events.sort((a, b) => a.time.localeCompare(b.time));
 
     container.innerHTML = events.map(e => `
         <div class="timeline-item">
@@ -423,14 +458,60 @@ document.getElementById('btn-next-month').addEventListener('click', async () => 
 
 // ========== PROFILE SECTION ==========
 function renderProfile() {
+    const avatar = document.getElementById('profile-avatar');
+    if (avatar) avatar.src = ME.avatar;
+    
+    const name = document.getElementById('profile-name');
+    if (name) name.textContent = ME.name;
+    
+    const specialty = document.getElementById('profile-specialty');
+    if (specialty) specialty.textContent = ME.specialty + (ME.subspecialty ? ' — ' + ME.subspecialty : '');
+    
+    const collegiat = document.getElementById('profile-collegiat');
+    if (collegiat) collegiat.innerHTML = `<i class="fas fa-id-badge"></i> Nº Col·legiat: ${ME.collegiat}`;
+    
+    const status = document.getElementById('profile-status');
+    const statusLabels = { 'disponible': 'Disponible', 'en-torn': 'En torn', 'ocupat': 'Ocupat', 'pausa': 'En pausa' };
+    const select = document.getElementById('my-status-select');
+    const currentStatus = select ? select.value : 'disponible';
+    if (status) {
+        status.textContent = statusLabels[currentStatus] || 'Disponible';
+        status.className = 'status-badge ' + (currentStatus || 'disponible');
+    }
+    
+    const exp = document.getElementById('profile-experience');
+    if (exp) exp.innerHTML = `<i class="fas fa-clock"></i> ${ME.experience || 0} anys d'experiència`;
+    
+    const unit = document.getElementById('profile-unit');
+    if (unit) unit.innerHTML = `<i class="fas fa-building"></i> ${ME.unit || 'Sense assignar'}`;
+    
     const container = document.getElementById('competence-list');
-    container.innerHTML = ME.competences.map(c => `
-        <div class="competence-item">
-            <i class="fas fa-award"></i>
-            <span class="competence-name">${c.name}</span>
-            <span class="competence-badge">${c.level}</span>
-        </div>
-    `).join('');
+    if (container && ME.competences) {
+        container.innerHTML = ME.competences.map(c => `
+            <div class="competence-item">
+                <i class="fas fa-award"></i>
+                <span class="competence-name">${c.name}</span>
+                <span class="competence-badge">${c.level}</span>
+            </div>
+        `).join('');
+    }
+    
+    const totalTorns = Object.values(MY_SHIFTS).filter(s => ['M','T','N','G'].includes(s)).length;
+    const totalGuardies = Object.values(MY_SHIFTS).filter(s => s === 'G').length;
+    const totalLliures = Object.values(MY_SHIFTS).filter(s => s === 'L').length;
+    const totalPacients = MY_CASES.length;
+    
+    const stTorns = document.getElementById('stat-torns');
+    if (stTorns) stTorns.textContent = totalTorns;
+    
+    const stGuardies = document.getElementById('stat-guardies');
+    if (stGuardies) stGuardies.textContent = totalGuardies;
+    
+    const stPacients = document.getElementById('stat-pacients');
+    if (stPacients) stPacients.textContent = totalPacients;
+    
+    const stLliures = document.getElementById('stat-lliures');
+    if (stLliures) stLliures.textContent = totalLliures;
 }
 
 // ========== REQUESTS SECTION ==========
@@ -639,6 +720,14 @@ async function init() {
         if (headerImg)  headerImg.src = ME.avatar;
         if (headerName) headerName.textContent = ME.name;
         if (headerRole) headerRole.textContent = ME.specialty;
+
+        // Actualitzar benvinguda amb el nom real del metge
+        var welcomeH1 = document.querySelector('.welcome-banner h1');
+        if (welcomeH1 && ME.shortName) {
+            var hour = new Date().getHours();
+            var greeting = hour < 14 ? 'Bon dia' : hour < 21 ? 'Bona tarda' : 'Bona nit';
+            welcomeH1.textContent = greeting + ', ' + ME.shortName + ' 👋';
+        }
     }
 
     const refreshLiveData = async () => {
